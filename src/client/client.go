@@ -1,33 +1,35 @@
 package main
 
 import (
-	"bindings"
 	"flag"
 	"fmt"
-	"github.com/google/uuid"
 	"log"
 	"math/rand"
 	"runtime"
-	"state"
 	"time"
+
+	"github.com/Bromles/epaxos-fixed/src/bindings"
+	"github.com/Bromles/epaxos-fixed/src/state"
+	"github.com/google/uuid"
 )
 
-var clientId string = *flag.String("id", "", "the id of the client. Default is RFC 4122 nodeID.")
-var masterAddr *string = flag.String("maddr", "", "Master address. Defaults to localhost")
-var masterPort *int = flag.Int("mport", 7087, "Master port. ")
-var reqsNb *int = flag.Int("q", 1000, "Total number of requests. ")
-var writes *int = flag.Int("w", 100, "Percentage of updates (writes). ")
-var psize *int = flag.Int("psize", 100, "Payload size for writes.")
-var noLeader *bool = flag.Bool("e", false, "Egalitarian (no leader). ")
-var fast *bool = flag.Bool("f", false, "Fast Paxos: send message directly to all replicas. ")
-var localReads *bool = flag.Bool("l", false, "Execute reads at the closest (local) replica. ")
-var procs *int = flag.Int("p", 2, "GOMAXPROCS. ")
-var conflicts *int = flag.Int("c", 0, "Percentage of conflicts. Defaults to 0%")
-var verbose *bool = flag.Bool("v", false, "verbose mode. ")
-var scan *bool = flag.Bool("s", false, "replace read with short scan (100 elements)")
+var (
+	clientId   = *flag.String("id", "", "the id of the client. Default is RFC 4122 nodeID.")
+	masterAddr = flag.String("maddr", "", "Master address. Defaults to localhost")
+	masterPort = flag.Int("mport", 7087, "Master port. ")
+	reqsNb     = flag.Int("q", 1000, "Total number of requests. ")
+	writes     = flag.Int("w", 100, "Percentage of updates (writes). ")
+	psize      = flag.Int("psize", 100, "Payload size for writes.")
+	noLeader   = flag.Bool("e", false, "Egalitarian (no leader). ")
+	fast       = flag.Bool("f", false, "Fast Paxos: send message directly to all replicas. ")
+	localReads = flag.Bool("l", false, "Execute reads at the closest (local) replica. ")
+	procs      = flag.Int("p", 2, "GOMAXPROCS. ")
+	conflicts  = flag.Int("c", 0, "Percentage of conflicts. Defaults to 0%")
+	verbose    = flag.Bool("v", false, "verbose mode. ")
+	scan       = flag.Bool("s", false, "replace read with short scan (100 elements)")
+)
 
 func main() {
-
 	flag.Parse()
 
 	runtime.GOMAXPROCS(*procs)

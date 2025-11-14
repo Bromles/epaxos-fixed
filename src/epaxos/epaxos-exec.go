@@ -1,12 +1,13 @@
 package epaxos
 
 import (
-	//    "state"
-	"dlog"
-	"epaxosproto"
-	"genericsmrproto"
 	"sort"
-	"state"
+
+	//    "state"
+	"github.com/Bromles/epaxos-fixed/src/dlog"
+	"github.com/Bromles/epaxos-fixed/src/epaxosproto"
+	"github.com/Bromles/epaxos-fixed/src/genericsmrproto"
+	"github.com/Bromles/epaxos-fixed/src/state"
 )
 
 const (
@@ -44,7 +45,7 @@ func (e *Exec) executeCommand(replica int32, instance int32) bool {
 	return true
 }
 
-var stack []*Instance = make([]*Instance, 0, 100)
+var stack = make([]*Instance, 0, 100)
 
 func (e *Exec) findSCC(root *Instance) bool {
 	index := 1
@@ -80,23 +81,23 @@ func (e *Exec) strongconnect(v *Instance, index *int) bool {
 	for q := int32(0); q < int32(e.r.N); q++ {
 		inst := v.Deps[q]
 		for i := e.r.ExecedUpTo[q] + 1; i <= inst; i++ {
-			if e.r.InstanceSpace[q][i] == nil || e.r.InstanceSpace[q][i].Cmds == nil{
+			if e.r.InstanceSpace[q][i] == nil || e.r.InstanceSpace[q][i].Cmds == nil {
 				dlog.Printf("Null instance %d.%d\n", q, i)
 				return false
 			}
 
-			if (e.r.transconf) {
+			if e.r.transconf {
 				conflict := false
 				for _, alpha := range v.Cmds {
 					for _, beta := range e.r.InstanceSpace[q][i].Cmds {
 						if state.Conflict(&alpha, &beta) {
-							conflict = true;
+							conflict = true
 						}
 					}
 				}
 				if !conflict {
 					continue
-				}			
+				}
 			}
 
 			if e.r.InstanceSpace[q][i].Status == epaxosproto.EXECUTED {
@@ -126,14 +127,14 @@ func (e *Exec) strongconnect(v *Instance, index *int) bool {
 	}
 
 	if v.Lowlink == v.Index {
-		//found SCC
+		// found SCC
 		list := stack[l:]
 
-		//execute commands in the increasing order of the Seq field
+		// execute commands in the increasing order of the Seq field
 		sort.Sort(nodeArray(list))
 		for _, w := range list {
 			for idx := 0; idx < len(w.Cmds); idx++ {
-				shouldRespond:=e.r.Dreply && w.lb != nil && w.lb.clientProposals != nil
+				shouldRespond := e.r.Dreply && w.lb != nil && w.lb.clientProposals != nil
 				dlog.Printf("Executing "+w.Cmds[idx].String()+" at %d.%d with (seq=%d, deps=%d, scc_size=%d, shouldRespond=%t)\n", w.id.replica, w.id.instance, w.Seq, w.Deps, len(list), shouldRespond)
 				if w.Cmds[idx].Op == state.NONE {
 					// nothing to do
@@ -144,7 +145,8 @@ func (e *Exec) strongconnect(v *Instance, index *int) bool {
 							TRUE,
 							w.lb.clientProposals[idx].CommandId,
 							val,
-							w.lb.clientProposals[idx].Timestamp},
+							w.lb.clientProposals[idx].Timestamp,
+						},
 						w.lb.clientProposals[idx].Reply,
 						w.lb.clientProposals[idx].Mutex)
 				} else if w.Cmds[idx].Op == state.PUT {

@@ -1,7 +1,7 @@
 package epaxosproto
 
 import (
-	"state"
+	"github.com/Bromles/epaxos-fixed/src/state"
 )
 
 type Prepare struct {

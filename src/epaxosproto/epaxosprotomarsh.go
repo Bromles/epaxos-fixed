@@ -1,12 +1,13 @@
 package epaxosproto
 
 import (
-	"io"
-	"sync"
-	"fastrpc"
 	"bufio"
 	"encoding/binary"
-	"state"
+	"io"
+	"sync"
+
+	"github.com/Bromles/epaxos-fixed/src/fastrpc"
+	"github.com/Bromles/epaxos-fixed/src/state"
 )
 
 type byteReader interface {
@@ -17,13 +18,14 @@ type byteReader interface {
 func (t *PrepareReply) New() fastrpc.Serializable {
 	return new(PrepareReply)
 }
+
 func (t *PrepareReply) BinarySize() (nbytes int, sizeKnown bool) {
 	return 0, false
 }
 
 type PrepareReplyCache struct {
-	mu	sync.Mutex
-	cache	[]*PrepareReply
+	mu    sync.Mutex
+	cache []*PrepareReply
 }
 
 func NewPrepareReplyCache() *PrepareReplyCache {
@@ -45,11 +47,13 @@ func (p *PrepareReplyCache) Get() *PrepareReply {
 	}
 	return t
 }
+
 func (p *PrepareReplyCache) Put(t *PrepareReply) {
 	p.mu.Lock()
 	p.cache = append(p.cache, t)
 	p.mu.Unlock()
 }
+
 func (t *PrepareReply) Marshal(wire io.Writer) {
 	var b [18]byte
 	var bs []byte
@@ -119,10 +123,10 @@ func (t *PrepareReply) Unmarshal(rr io.Reader) error {
 	if _, err := io.ReadAtLeast(wire, bs, 17); err != nil {
 		return err
 	}
-	t.AcceptorId = int32((uint32(bs[0]) | (uint32(bs[1]) << 8) | (uint32(bs[2]) << 16) | (uint32(bs[3]) << 24)))
-	t.Replica = int32((uint32(bs[4]) | (uint32(bs[5]) << 8) | (uint32(bs[6]) << 16) | (uint32(bs[7]) << 24)))
-	t.Instance = int32((uint32(bs[8]) | (uint32(bs[9]) << 8) | (uint32(bs[10]) << 16) | (uint32(bs[11]) << 24)))
-	t.Ballot = int32((uint32(bs[12]) | (uint32(bs[13]) << 8) | (uint32(bs[14]) << 16) | (uint32(bs[15]) << 24)))
+	t.AcceptorId = int32(uint32(bs[0]) | (uint32(bs[1]) << 8) | (uint32(bs[2]) << 16) | (uint32(bs[3]) << 24))
+	t.Replica = int32(uint32(bs[4]) | (uint32(bs[5]) << 8) | (uint32(bs[6]) << 16) | (uint32(bs[7]) << 24))
+	t.Instance = int32(uint32(bs[8]) | (uint32(bs[9]) << 8) | (uint32(bs[10]) << 16) | (uint32(bs[11]) << 24))
+	t.Ballot = int32(uint32(bs[12]) | (uint32(bs[13]) << 8) | (uint32(bs[14]) << 16) | (uint32(bs[15]) << 24))
 	t.Status = int8(bs[16])
 	alen1, err := binary.ReadVarint(wire)
 	if err != nil {
@@ -136,7 +140,7 @@ func (t *PrepareReply) Unmarshal(rr io.Reader) error {
 	if _, err := io.ReadAtLeast(wire, bs, 4); err != nil {
 		return err
 	}
-	t.Seq = int32((uint32(bs[0]) | (uint32(bs[1]) << 8) | (uint32(bs[2]) << 16) | (uint32(bs[3]) << 24)))
+	t.Seq = int32(uint32(bs[0]) | (uint32(bs[1]) << 8) | (uint32(bs[2]) << 16) | (uint32(bs[3]) << 24))
 	alen2, err := binary.ReadVarint(wire)
 	if err != nil {
 		return err
@@ -146,7 +150,7 @@ func (t *PrepareReply) Unmarshal(rr io.Reader) error {
 		if _, err := io.ReadAtLeast(wire, bs, 4); err != nil {
 			return err
 		}
-		t.Deps[i] = int32((uint32(bs[0]) | (uint32(bs[1]) << 8) | (uint32(bs[2]) << 16) | (uint32(bs[3]) << 24)))
+		t.Deps[i] = int32(uint32(bs[0]) | (uint32(bs[1]) << 8) | (uint32(bs[2]) << 16) | (uint32(bs[3]) << 24))
 	}
 	return nil
 }
@@ -154,13 +158,14 @@ func (t *PrepareReply) Unmarshal(rr io.Reader) error {
 func (t *PreAccept) New() fastrpc.Serializable {
 	return new(PreAccept)
 }
+
 func (t *PreAccept) BinarySize() (nbytes int, sizeKnown bool) {
 	return 0, false
 }
 
 type PreAcceptCache struct {
-	mu	sync.Mutex
-	cache	[]*PreAccept
+	mu    sync.Mutex
+	cache []*PreAccept
 }
 
 func NewPreAcceptCache() *PreAcceptCache {
@@ -182,11 +187,13 @@ func (p *PreAcceptCache) Get() *PreAccept {
 	}
 	return t
 }
+
 func (p *PreAcceptCache) Put(t *PreAccept) {
 	p.mu.Lock()
 	p.cache = append(p.cache, t)
 	p.mu.Unlock()
 }
+
 func (t *PreAccept) Marshal(wire io.Writer) {
 	var b [16]byte
 	var bs []byte
@@ -255,10 +262,10 @@ func (t *PreAccept) Unmarshal(rr io.Reader) error {
 	if _, err := io.ReadAtLeast(wire, bs, 16); err != nil {
 		return err
 	}
-	t.LeaderId = int32((uint32(bs[0]) | (uint32(bs[1]) << 8) | (uint32(bs[2]) << 16) | (uint32(bs[3]) << 24)))
-	t.Replica = int32((uint32(bs[4]) | (uint32(bs[5]) << 8) | (uint32(bs[6]) << 16) | (uint32(bs[7]) << 24)))
-	t.Instance = int32((uint32(bs[8]) | (uint32(bs[9]) << 8) | (uint32(bs[10]) << 16) | (uint32(bs[11]) << 24)))
-	t.Ballot = int32((uint32(bs[12]) | (uint32(bs[13]) << 8) | (uint32(bs[14]) << 16) | (uint32(bs[15]) << 24)))
+	t.LeaderId = int32(uint32(bs[0]) | (uint32(bs[1]) << 8) | (uint32(bs[2]) << 16) | (uint32(bs[3]) << 24))
+	t.Replica = int32(uint32(bs[4]) | (uint32(bs[5]) << 8) | (uint32(bs[6]) << 16) | (uint32(bs[7]) << 24))
+	t.Instance = int32(uint32(bs[8]) | (uint32(bs[9]) << 8) | (uint32(bs[10]) << 16) | (uint32(bs[11]) << 24))
+	t.Ballot = int32(uint32(bs[12]) | (uint32(bs[13]) << 8) | (uint32(bs[14]) << 16) | (uint32(bs[15]) << 24))
 	alen1, err := binary.ReadVarint(wire)
 	if err != nil {
 		return err
@@ -271,7 +278,7 @@ func (t *PreAccept) Unmarshal(rr io.Reader) error {
 	if _, err := io.ReadAtLeast(wire, bs, 4); err != nil {
 		return err
 	}
-	t.Seq = int32((uint32(bs[0]) | (uint32(bs[1]) << 8) | (uint32(bs[2]) << 16) | (uint32(bs[3]) << 24)))
+	t.Seq = int32(uint32(bs[0]) | (uint32(bs[1]) << 8) | (uint32(bs[2]) << 16) | (uint32(bs[3]) << 24))
 	alen2, err := binary.ReadVarint(wire)
 	if err != nil {
 		return err
@@ -281,7 +288,7 @@ func (t *PreAccept) Unmarshal(rr io.Reader) error {
 		if _, err := io.ReadAtLeast(wire, bs, 4); err != nil {
 			return err
 		}
-		t.Deps[i] = int32((uint32(bs[0]) | (uint32(bs[1]) << 8) | (uint32(bs[2]) << 16) | (uint32(bs[3]) << 24)))
+		t.Deps[i] = int32(uint32(bs[0]) | (uint32(bs[1]) << 8) | (uint32(bs[2]) << 16) | (uint32(bs[3]) << 24))
 	}
 	return nil
 }
@@ -289,13 +296,14 @@ func (t *PreAccept) Unmarshal(rr io.Reader) error {
 func (t *Accept) New() fastrpc.Serializable {
 	return new(Accept)
 }
+
 func (t *Accept) BinarySize() (nbytes int, sizeKnown bool) {
 	return 0, false
 }
 
 type AcceptCache struct {
-	mu	sync.Mutex
-	cache	[]*Accept
+	mu    sync.Mutex
+	cache []*Accept
 }
 
 func NewAcceptCache() *AcceptCache {
@@ -317,11 +325,13 @@ func (p *AcceptCache) Get() *Accept {
 	}
 	return t
 }
+
 func (p *AcceptCache) Put(t *Accept) {
 	p.mu.Lock()
 	p.cache = append(p.cache, t)
 	p.mu.Unlock()
 }
+
 func (t *Accept) Marshal(wire io.Writer) {
 	var b [20]byte
 	var bs []byte
@@ -380,11 +390,11 @@ func (t *Accept) Unmarshal(rr io.Reader) error {
 	if _, err := io.ReadAtLeast(wire, bs, 20); err != nil {
 		return err
 	}
-	t.LeaderId = int32((uint32(bs[0]) | (uint32(bs[1]) << 8) | (uint32(bs[2]) << 16) | (uint32(bs[3]) << 24)))
-	t.Replica = int32((uint32(bs[4]) | (uint32(bs[5]) << 8) | (uint32(bs[6]) << 16) | (uint32(bs[7]) << 24)))
-	t.Instance = int32((uint32(bs[8]) | (uint32(bs[9]) << 8) | (uint32(bs[10]) << 16) | (uint32(bs[11]) << 24)))
-	t.Ballot = int32((uint32(bs[12]) | (uint32(bs[13]) << 8) | (uint32(bs[14]) << 16) | (uint32(bs[15]) << 24)))
-	t.Seq = int32((uint32(bs[16]) | (uint32(bs[17]) << 8) | (uint32(bs[18]) << 16) | (uint32(bs[19]) << 24)))
+	t.LeaderId = int32(uint32(bs[0]) | (uint32(bs[1]) << 8) | (uint32(bs[2]) << 16) | (uint32(bs[3]) << 24))
+	t.Replica = int32(uint32(bs[4]) | (uint32(bs[5]) << 8) | (uint32(bs[6]) << 16) | (uint32(bs[7]) << 24))
+	t.Instance = int32(uint32(bs[8]) | (uint32(bs[9]) << 8) | (uint32(bs[10]) << 16) | (uint32(bs[11]) << 24))
+	t.Ballot = int32(uint32(bs[12]) | (uint32(bs[13]) << 8) | (uint32(bs[14]) << 16) | (uint32(bs[15]) << 24))
+	t.Seq = int32(uint32(bs[16]) | (uint32(bs[17]) << 8) | (uint32(bs[18]) << 16) | (uint32(bs[19]) << 24))
 	alen1, err := binary.ReadVarint(wire)
 	if err != nil {
 		return err
@@ -395,7 +405,7 @@ func (t *Accept) Unmarshal(rr io.Reader) error {
 		if _, err := io.ReadAtLeast(wire, bs, 4); err != nil {
 			return err
 		}
-		t.Deps[i] = int32((uint32(bs[0]) | (uint32(bs[1]) << 8) | (uint32(bs[2]) << 16) | (uint32(bs[3]) << 24)))
+		t.Deps[i] = int32(uint32(bs[0]) | (uint32(bs[1]) << 8) | (uint32(bs[2]) << 16) | (uint32(bs[3]) << 24))
 	}
 	return nil
 }
@@ -403,13 +413,14 @@ func (t *Accept) Unmarshal(rr io.Reader) error {
 func (t *AcceptReply) New() fastrpc.Serializable {
 	return new(AcceptReply)
 }
+
 func (t *AcceptReply) BinarySize() (nbytes int, sizeKnown bool) {
 	return 13, true
 }
 
 type AcceptReplyCache struct {
-	mu	sync.Mutex
-	cache	[]*AcceptReply
+	mu    sync.Mutex
+	cache []*AcceptReply
 }
 
 func NewAcceptReplyCache() *AcceptReplyCache {
@@ -431,11 +442,13 @@ func (p *AcceptReplyCache) Get() *AcceptReply {
 	}
 	return t
 }
+
 func (p *AcceptReplyCache) Put(t *AcceptReply) {
 	p.mu.Lock()
 	p.cache = append(p.cache, t)
 	p.mu.Unlock()
 }
+
 func (t *AcceptReply) Marshal(wire io.Writer) {
 	var b [12]byte
 	var bs []byte
@@ -465,22 +478,23 @@ func (t *AcceptReply) Unmarshal(wire io.Reader) error {
 	if _, err := io.ReadAtLeast(wire, bs, 12); err != nil {
 		return err
 	}
-	t.Replica = int32((uint32(bs[0]) | (uint32(bs[1]) << 8) | (uint32(bs[2]) << 16) | (uint32(bs[3]) << 24)))
-	t.Instance = int32((uint32(bs[4]) | (uint32(bs[5]) << 8) | (uint32(bs[6]) << 16) | (uint32(bs[7]) << 24)))
-	t.Ballot = int32((uint32(bs[8]) | (uint32(bs[9]) << 8) | (uint32(bs[10]) << 16) | (uint32(bs[11]) << 24)))
+	t.Replica = int32(uint32(bs[0]) | (uint32(bs[1]) << 8) | (uint32(bs[2]) << 16) | (uint32(bs[3]) << 24))
+	t.Instance = int32(uint32(bs[4]) | (uint32(bs[5]) << 8) | (uint32(bs[6]) << 16) | (uint32(bs[7]) << 24))
+	t.Ballot = int32(uint32(bs[8]) | (uint32(bs[9]) << 8) | (uint32(bs[10]) << 16) | (uint32(bs[11]) << 24))
 	return nil
 }
 
 func (t *TryPreAccept) New() fastrpc.Serializable {
 	return new(TryPreAccept)
 }
+
 func (t *TryPreAccept) BinarySize() (nbytes int, sizeKnown bool) {
 	return 0, false
 }
 
 type TryPreAcceptCache struct {
-	mu	sync.Mutex
-	cache	[]*TryPreAccept
+	mu    sync.Mutex
+	cache []*TryPreAccept
 }
 
 func NewTryPreAcceptCache() *TryPreAcceptCache {
@@ -502,11 +516,13 @@ func (p *TryPreAcceptCache) Get() *TryPreAccept {
 	}
 	return t
 }
+
 func (p *TryPreAcceptCache) Put(t *TryPreAccept) {
 	p.mu.Lock()
 	p.cache = append(p.cache, t)
 	p.mu.Unlock()
 }
+
 func (t *TryPreAccept) Marshal(wire io.Writer) {
 	var b [16]byte
 	var bs []byte
@@ -575,10 +591,10 @@ func (t *TryPreAccept) Unmarshal(rr io.Reader) error {
 	if _, err := io.ReadAtLeast(wire, bs, 16); err != nil {
 		return err
 	}
-	t.LeaderId = int32((uint32(bs[0]) | (uint32(bs[1]) << 8) | (uint32(bs[2]) << 16) | (uint32(bs[3]) << 24)))
-	t.Replica = int32((uint32(bs[4]) | (uint32(bs[5]) << 8) | (uint32(bs[6]) << 16) | (uint32(bs[7]) << 24)))
-	t.Instance = int32((uint32(bs[8]) | (uint32(bs[9]) << 8) | (uint32(bs[10]) << 16) | (uint32(bs[11]) << 24)))
-	t.Ballot = int32((uint32(bs[12]) | (uint32(bs[13]) << 8) | (uint32(bs[14]) << 16) | (uint32(bs[15]) << 24)))
+	t.LeaderId = int32(uint32(bs[0]) | (uint32(bs[1]) << 8) | (uint32(bs[2]) << 16) | (uint32(bs[3]) << 24))
+	t.Replica = int32(uint32(bs[4]) | (uint32(bs[5]) << 8) | (uint32(bs[6]) << 16) | (uint32(bs[7]) << 24))
+	t.Instance = int32(uint32(bs[8]) | (uint32(bs[9]) << 8) | (uint32(bs[10]) << 16) | (uint32(bs[11]) << 24))
+	t.Ballot = int32(uint32(bs[12]) | (uint32(bs[13]) << 8) | (uint32(bs[14]) << 16) | (uint32(bs[15]) << 24))
 	alen1, err := binary.ReadVarint(wire)
 	if err != nil {
 		return err
@@ -591,7 +607,7 @@ func (t *TryPreAccept) Unmarshal(rr io.Reader) error {
 	if _, err := io.ReadAtLeast(wire, bs, 4); err != nil {
 		return err
 	}
-	t.Seq = int32((uint32(bs[0]) | (uint32(bs[1]) << 8) | (uint32(bs[2]) << 16) | (uint32(bs[3]) << 24)))
+	t.Seq = int32(uint32(bs[0]) | (uint32(bs[1]) << 8) | (uint32(bs[2]) << 16) | (uint32(bs[3]) << 24))
 	alen2, err := binary.ReadVarint(wire)
 	if err != nil {
 		return err
@@ -601,7 +617,7 @@ func (t *TryPreAccept) Unmarshal(rr io.Reader) error {
 		if _, err := io.ReadAtLeast(wire, bs, 4); err != nil {
 			return err
 		}
-		t.Deps[i] = int32((uint32(bs[0]) | (uint32(bs[1]) << 8) | (uint32(bs[2]) << 16) | (uint32(bs[3]) << 24)))
+		t.Deps[i] = int32(uint32(bs[0]) | (uint32(bs[1]) << 8) | (uint32(bs[2]) << 16) | (uint32(bs[3]) << 24))
 	}
 	return nil
 }
@@ -609,13 +625,14 @@ func (t *TryPreAccept) Unmarshal(rr io.Reader) error {
 func (t *Prepare) New() fastrpc.Serializable {
 	return new(Prepare)
 }
+
 func (t *Prepare) BinarySize() (nbytes int, sizeKnown bool) {
 	return 16, true
 }
 
 type PrepareCache struct {
-	mu	sync.Mutex
-	cache	[]*Prepare
+	mu    sync.Mutex
+	cache []*Prepare
 }
 
 func NewPrepareCache() *PrepareCache {
@@ -637,11 +654,13 @@ func (p *PrepareCache) Get() *Prepare {
 	}
 	return t
 }
+
 func (p *PrepareCache) Put(t *Prepare) {
 	p.mu.Lock()
 	p.cache = append(p.cache, t)
 	p.mu.Unlock()
 }
+
 func (t *Prepare) Marshal(wire io.Writer) {
 	var b [16]byte
 	var bs []byte
@@ -676,23 +695,24 @@ func (t *Prepare) Unmarshal(wire io.Reader) error {
 	if _, err := io.ReadAtLeast(wire, bs, 16); err != nil {
 		return err
 	}
-	t.LeaderId = int32((uint32(bs[0]) | (uint32(bs[1]) << 8) | (uint32(bs[2]) << 16) | (uint32(bs[3]) << 24)))
-	t.Replica = int32((uint32(bs[4]) | (uint32(bs[5]) << 8) | (uint32(bs[6]) << 16) | (uint32(bs[7]) << 24)))
-	t.Instance = int32((uint32(bs[8]) | (uint32(bs[9]) << 8) | (uint32(bs[10]) << 16) | (uint32(bs[11]) << 24)))
-	t.Ballot = int32((uint32(bs[12]) | (uint32(bs[13]) << 8) | (uint32(bs[14]) << 16) | (uint32(bs[15]) << 24)))
+	t.LeaderId = int32(uint32(bs[0]) | (uint32(bs[1]) << 8) | (uint32(bs[2]) << 16) | (uint32(bs[3]) << 24))
+	t.Replica = int32(uint32(bs[4]) | (uint32(bs[5]) << 8) | (uint32(bs[6]) << 16) | (uint32(bs[7]) << 24))
+	t.Instance = int32(uint32(bs[8]) | (uint32(bs[9]) << 8) | (uint32(bs[10]) << 16) | (uint32(bs[11]) << 24))
+	t.Ballot = int32(uint32(bs[12]) | (uint32(bs[13]) << 8) | (uint32(bs[14]) << 16) | (uint32(bs[15]) << 24))
 	return nil
 }
 
 func (t *PreAcceptReply) New() fastrpc.Serializable {
 	return new(PreAcceptReply)
 }
+
 func (t *PreAcceptReply) BinarySize() (nbytes int, sizeKnown bool) {
 	return 0, false
 }
 
 type PreAcceptReplyCache struct {
-	mu	sync.Mutex
-	cache	[]*PreAcceptReply
+	mu    sync.Mutex
+	cache []*PreAcceptReply
 }
 
 func NewPreAcceptReplyCache() *PreAcceptReplyCache {
@@ -714,11 +734,13 @@ func (p *PreAcceptReplyCache) Get() *PreAcceptReply {
 	}
 	return t
 }
+
 func (p *PreAcceptReplyCache) Put(t *PreAcceptReply) {
 	p.mu.Lock()
 	p.cache = append(p.cache, t)
 	p.mu.Unlock()
 }
+
 func (t *PreAcceptReply) Marshal(wire io.Writer) {
 	var b [21]byte
 	var bs []byte
@@ -792,11 +814,11 @@ func (t *PreAcceptReply) Unmarshal(rr io.Reader) error {
 	if _, err := io.ReadAtLeast(wire, bs, 21); err != nil {
 		return err
 	}
-	t.Replica = int32((uint32(bs[0]) | (uint32(bs[1]) << 8) | (uint32(bs[2]) << 16) | (uint32(bs[3]) << 24)))
-	t.Instance = int32((uint32(bs[4]) | (uint32(bs[5]) << 8) | (uint32(bs[6]) << 16) | (uint32(bs[7]) << 24)))
-	t.Ballot = int32((uint32(bs[8]) | (uint32(bs[9]) << 8) | (uint32(bs[10]) << 16) | (uint32(bs[11]) << 24)))
-	t.VBallot = int32((uint32(bs[12]) | (uint32(bs[13]) << 8) | (uint32(bs[14]) << 16) | (uint32(bs[15]) << 24)))
-	t.Seq = int32((uint32(bs[16]) | (uint32(bs[17]) << 8) | (uint32(bs[18]) << 16) | (uint32(bs[19]) << 24)))
+	t.Replica = int32(uint32(bs[0]) | (uint32(bs[1]) << 8) | (uint32(bs[2]) << 16) | (uint32(bs[3]) << 24))
+	t.Instance = int32(uint32(bs[4]) | (uint32(bs[5]) << 8) | (uint32(bs[6]) << 16) | (uint32(bs[7]) << 24))
+	t.Ballot = int32(uint32(bs[8]) | (uint32(bs[9]) << 8) | (uint32(bs[10]) << 16) | (uint32(bs[11]) << 24))
+	t.VBallot = int32(uint32(bs[12]) | (uint32(bs[13]) << 8) | (uint32(bs[14]) << 16) | (uint32(bs[15]) << 24))
+	t.Seq = int32(uint32(bs[16]) | (uint32(bs[17]) << 8) | (uint32(bs[18]) << 16) | (uint32(bs[19]) << 24))
 	t.Status = int8(bs[20])
 	alen1, err := binary.ReadVarint(wire)
 	if err != nil {
@@ -808,7 +830,7 @@ func (t *PreAcceptReply) Unmarshal(rr io.Reader) error {
 		if _, err := io.ReadAtLeast(wire, bs, 4); err != nil {
 			return err
 		}
-		t.Deps[i] = int32((uint32(bs[0]) | (uint32(bs[1]) << 8) | (uint32(bs[2]) << 16) | (uint32(bs[3]) << 24)))
+		t.Deps[i] = int32(uint32(bs[0]) | (uint32(bs[1]) << 8) | (uint32(bs[2]) << 16) | (uint32(bs[3]) << 24))
 	}
 	alen2, err := binary.ReadVarint(wire)
 	if err != nil {
@@ -819,7 +841,7 @@ func (t *PreAcceptReply) Unmarshal(rr io.Reader) error {
 		if _, err := io.ReadAtLeast(wire, bs, 4); err != nil {
 			return err
 		}
-		t.CommittedDeps[i] = int32((uint32(bs[0]) | (uint32(bs[1]) << 8) | (uint32(bs[2]) << 16) | (uint32(bs[3]) << 24)))
+		t.CommittedDeps[i] = int32(uint32(bs[0]) | (uint32(bs[1]) << 8) | (uint32(bs[2]) << 16) | (uint32(bs[3]) << 24))
 	}
 	return nil
 }
@@ -827,13 +849,14 @@ func (t *PreAcceptReply) Unmarshal(rr io.Reader) error {
 func (t *PreAcceptOK) New() fastrpc.Serializable {
 	return new(PreAcceptOK)
 }
+
 func (t *PreAcceptOK) BinarySize() (nbytes int, sizeKnown bool) {
 	return 4, true
 }
 
 type PreAcceptOKCache struct {
-	mu	sync.Mutex
-	cache	[]*PreAcceptOK
+	mu    sync.Mutex
+	cache []*PreAcceptOK
 }
 
 func NewPreAcceptOKCache() *PreAcceptOKCache {
@@ -855,11 +878,13 @@ func (p *PreAcceptOKCache) Get() *PreAcceptOK {
 	}
 	return t
 }
+
 func (p *PreAcceptOKCache) Put(t *PreAcceptOK) {
 	p.mu.Lock()
 	p.cache = append(p.cache, t)
 	p.mu.Unlock()
 }
+
 func (t *PreAcceptOK) Marshal(wire io.Writer) {
 	var b [4]byte
 	var bs []byte
@@ -879,20 +904,21 @@ func (t *PreAcceptOK) Unmarshal(wire io.Reader) error {
 	if _, err := io.ReadAtLeast(wire, bs, 4); err != nil {
 		return err
 	}
-	t.Instance = int32((uint32(bs[0]) | (uint32(bs[1]) << 8) | (uint32(bs[2]) << 16) | (uint32(bs[3]) << 24)))
+	t.Instance = int32(uint32(bs[0]) | (uint32(bs[1]) << 8) | (uint32(bs[2]) << 16) | (uint32(bs[3]) << 24))
 	return nil
 }
 
 func (t *Commit) New() fastrpc.Serializable {
 	return new(Commit)
 }
+
 func (t *Commit) BinarySize() (nbytes int, sizeKnown bool) {
 	return 0, false
 }
 
 type CommitCache struct {
-	mu	sync.Mutex
-	cache	[]*Commit
+	mu    sync.Mutex
+	cache []*Commit
 }
 
 func NewCommitCache() *CommitCache {
@@ -914,11 +940,13 @@ func (p *CommitCache) Get() *Commit {
 	}
 	return t
 }
+
 func (p *CommitCache) Put(t *Commit) {
 	p.mu.Lock()
 	p.cache = append(p.cache, t)
 	p.mu.Unlock()
 }
+
 func (t *Commit) Marshal(wire io.Writer) {
 	var b [16]byte
 	var bs []byte
@@ -987,10 +1015,10 @@ func (t *Commit) Unmarshal(rr io.Reader) error {
 	if _, err := io.ReadAtLeast(wire, bs, 16); err != nil {
 		return err
 	}
-	t.LeaderId = int32((uint32(bs[0]) | (uint32(bs[1]) << 8) | (uint32(bs[2]) << 16) | (uint32(bs[3]) << 24)))
-	t.Replica = int32((uint32(bs[4]) | (uint32(bs[5]) << 8) | (uint32(bs[6]) << 16) | (uint32(bs[7]) << 24)))
-	t.Instance = int32((uint32(bs[8]) | (uint32(bs[9]) << 8) | (uint32(bs[10]) << 16) | (uint32(bs[11]) << 24)))
-	t.Ballot = int32((uint32(bs[12]) | (uint32(bs[13]) << 8) | (uint32(bs[14]) << 16) | (uint32(bs[15]) << 24)))
+	t.LeaderId = int32(uint32(bs[0]) | (uint32(bs[1]) << 8) | (uint32(bs[2]) << 16) | (uint32(bs[3]) << 24))
+	t.Replica = int32(uint32(bs[4]) | (uint32(bs[5]) << 8) | (uint32(bs[6]) << 16) | (uint32(bs[7]) << 24))
+	t.Instance = int32(uint32(bs[8]) | (uint32(bs[9]) << 8) | (uint32(bs[10]) << 16) | (uint32(bs[11]) << 24))
+	t.Ballot = int32(uint32(bs[12]) | (uint32(bs[13]) << 8) | (uint32(bs[14]) << 16) | (uint32(bs[15]) << 24))
 	alen1, err := binary.ReadVarint(wire)
 	if err != nil {
 		return err
@@ -1003,7 +1031,7 @@ func (t *Commit) Unmarshal(rr io.Reader) error {
 	if _, err := io.ReadAtLeast(wire, bs, 4); err != nil {
 		return err
 	}
-	t.Seq = int32((uint32(bs[0]) | (uint32(bs[1]) << 8) | (uint32(bs[2]) << 16) | (uint32(bs[3]) << 24)))
+	t.Seq = int32(uint32(bs[0]) | (uint32(bs[1]) << 8) | (uint32(bs[2]) << 16) | (uint32(bs[3]) << 24))
 	alen2, err := binary.ReadVarint(wire)
 	if err != nil {
 		return err
@@ -1013,7 +1041,7 @@ func (t *Commit) Unmarshal(rr io.Reader) error {
 		if _, err := io.ReadAtLeast(wire, bs, 4); err != nil {
 			return err
 		}
-		t.Deps[i] = int32((uint32(bs[0]) | (uint32(bs[1]) << 8) | (uint32(bs[2]) << 16) | (uint32(bs[3]) << 24)))
+		t.Deps[i] = int32(uint32(bs[0]) | (uint32(bs[1]) << 8) | (uint32(bs[2]) << 16) | (uint32(bs[3]) << 24))
 	}
 	return nil
 }
@@ -1021,13 +1049,14 @@ func (t *Commit) Unmarshal(rr io.Reader) error {
 func (t *TryPreAcceptReply) New() fastrpc.Serializable {
 	return new(TryPreAcceptReply)
 }
+
 func (t *TryPreAcceptReply) BinarySize() (nbytes int, sizeKnown bool) {
 	return 26, true
 }
 
 type TryPreAcceptReplyCache struct {
-	mu	sync.Mutex
-	cache	[]*TryPreAcceptReply
+	mu    sync.Mutex
+	cache []*TryPreAcceptReply
 }
 
 func NewTryPreAcceptReplyCache() *TryPreAcceptReplyCache {
@@ -1049,11 +1078,13 @@ func (p *TryPreAcceptReplyCache) Get() *TryPreAcceptReply {
 	}
 	return t
 }
+
 func (p *TryPreAcceptReplyCache) Put(t *TryPreAcceptReply) {
 	p.mu.Lock()
 	p.cache = append(p.cache, t)
 	p.mu.Unlock()
 }
+
 func (t *TryPreAcceptReply) Marshal(wire io.Writer) {
 	var b [29]byte
 	var bs []byte
@@ -1104,13 +1135,13 @@ func (t *TryPreAcceptReply) Unmarshal(wire io.Reader) error {
 	if _, err := io.ReadAtLeast(wire, bs, 29); err != nil {
 		return err
 	}
-	t.AcceptorId = int32((uint32(bs[0]) | (uint32(bs[1]) << 8) | (uint32(bs[2]) << 16) | (uint32(bs[3]) << 24)))
-	t.Replica = int32((uint32(bs[4]) | (uint32(bs[5]) << 8) | (uint32(bs[6]) << 16) | (uint32(bs[7]) << 24)))
-	t.Instance = int32((uint32(bs[8]) | (uint32(bs[9]) << 8) | (uint32(bs[10]) << 16) | (uint32(bs[11]) << 24)))
-	t.Ballot = int32((uint32(bs[12]) | (uint32(bs[13]) << 8) | (uint32(bs[14]) << 16) | (uint32(bs[15]) << 24)))
-	t.VBallot = int32((uint32(bs[16]) | (uint32(bs[17]) << 8) | (uint32(bs[18]) << 16) | (uint32(bs[19]) << 24)))
-	t.ConflictReplica = int32((uint32(bs[20]) | (uint32(bs[21]) << 8) | (uint32(bs[22]) << 16) | (uint32(bs[23]) << 24)))
-	t.ConflictInstance = int32((uint32(bs[24]) | (uint32(bs[25]) << 8) | (uint32(bs[26]) << 16) | (uint32(bs[27]) << 24)))
+	t.AcceptorId = int32(uint32(bs[0]) | (uint32(bs[1]) << 8) | (uint32(bs[2]) << 16) | (uint32(bs[3]) << 24))
+	t.Replica = int32(uint32(bs[4]) | (uint32(bs[5]) << 8) | (uint32(bs[6]) << 16) | (uint32(bs[7]) << 24))
+	t.Instance = int32(uint32(bs[8]) | (uint32(bs[9]) << 8) | (uint32(bs[10]) << 16) | (uint32(bs[11]) << 24))
+	t.Ballot = int32(uint32(bs[12]) | (uint32(bs[13]) << 8) | (uint32(bs[14]) << 16) | (uint32(bs[15]) << 24))
+	t.VBallot = int32(uint32(bs[16]) | (uint32(bs[17]) << 8) | (uint32(bs[18]) << 16) | (uint32(bs[19]) << 24))
+	t.ConflictReplica = int32(uint32(bs[20]) | (uint32(bs[21]) << 8) | (uint32(bs[22]) << 16) | (uint32(bs[23]) << 24))
+	t.ConflictInstance = int32(uint32(bs[24]) | (uint32(bs[25]) << 8) | (uint32(bs[26]) << 16) | (uint32(bs[27]) << 24))
 	t.ConflictStatus = int8(bs[28])
 	return nil
 }

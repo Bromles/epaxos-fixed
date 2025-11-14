@@ -3,33 +3,36 @@ package main
 import (
 	"flag"
 	"fmt"
-	"genericsmrproto"
 	"log"
-	"masterproto"
+	"math"
 	"net"
 	"net/http"
 	"net/rpc"
-	"sync"
-	"time"
-	"math"
+	"os/exec"
 	"strconv"
 	"strings"
-	"os/exec"
+	"sync"
+	"time"
+
+	"github.com/Bromles/epaxos-fixed/src/genericsmrproto"
+	"github.com/Bromles/epaxos-fixed/src/masterproto"
 )
 
-var portnum *int = flag.Int("port", 7087, "Port # to listen on. Defaults to 7087")
-var numNodes *int = flag.Int("N", 3, "Number of replicas. Defaults to 3.")
+var (
+	portnum  = flag.Int("port", 7087, "Port # to listen on. Defaults to 7087")
+	numNodes = flag.Int("N", 3, "Number of replicas. Defaults to 3.")
+)
 
 type Master struct {
-	N        int
-	nodeList []string
-	addrList []string
-	portList []int
-	lock     *sync.Mutex
-	nodes    []*rpc.Client
-	leader   []bool
-	alive    []bool
-	latencies [] float64
+	N         int
+	nodeList  []string
+	addrList  []string
+	portList  []int
+	lock      *sync.Mutex
+	nodes     []*rpc.Client
+	leader    []bool
+	alive     []bool
+	latencies []float64
 }
 
 func main() {
@@ -38,7 +41,8 @@ func main() {
 	log.Printf("Master starting on port %d\n", *portnum)
 	log.Printf("...waiting for %d replicas\n", *numNodes)
 
-	master := &Master{*numNodes,
+	master := &Master{
+		*numNodes,
 		make([]string, 0, *numNodes),
 		make([]string, 0, *numNodes),
 		make([]int, 0, *numNodes),
@@ -46,7 +50,8 @@ func main() {
 		make([]*rpc.Client, *numNodes),
 		make([]bool, *numNodes),
 		make([]bool, *numNodes),
-		make([]float64, *numNodes)}
+		make([]float64, *numNodes),
+	}
 
 	rpc.Register(master)
 	rpc.HandleHTTP()
@@ -78,7 +83,7 @@ func (master *Master) run() {
 		addr := fmt.Sprintf("%s:%d", master.addrList[i], master.portList[i]+1000)
 		master.nodes[i], err = rpc.DialHTTP("tcp", addr)
 		if err != nil {
-			log.Printf("Error connecting to replica %d (%v), retrying .. \n", i,addr)
+			log.Printf("Error connecting to replica %d (%v), retrying .. \n", i, addr)
 			time.Sleep(1000000000) // retry
 		} else {
 			i++
@@ -124,7 +129,6 @@ func (master *Master) run() {
 }
 
 func (master *Master) Register(args *masterproto.RegisterArgs, reply *masterproto.RegisterReply) error {
-
 	master.lock.Lock()
 	defer master.lock.Unlock()
 
@@ -157,9 +161,9 @@ func (master *Master) Register(args *masterproto.RegisterArgs, reply *masterprot
 		out, err := exec.Command("ping", addr, "-c 2", "-q").Output()
 		if err == nil {
 			master.latencies[index], _ = strconv.ParseFloat(strings.Split(string(out), "/")[4], 64)
-			log.Printf(" node %v [%v] -> %v", index, master.nodeList[index],master.latencies[index])
-		}else{
-			log.Fatal("cannot connect to "+addr)
+			log.Printf(" node %v [%v] -> %v", index, master.nodeList[index], master.latencies[index])
+		} else {
+			log.Fatal("cannot connect to " + addr)
 		}
 	}
 
@@ -216,9 +220,9 @@ func (master *Master) GetReplicaList(args *masterproto.GetReplicaListArgs, reply
 
 	reply.ReplicaList = make([]string, 0)
 	reply.AliveList = make([]bool, 0)
-	for i,node := range master.nodeList {
-		reply.ReplicaList = append(reply.ReplicaList,node)
-		reply.AliveList = append(reply.AliveList,master.alive[i])
+	for i, node := range master.nodeList {
+		reply.ReplicaList = append(reply.ReplicaList, node)
+		reply.AliveList = append(reply.AliveList, master.alive[i])
 	}
 
 	log.Printf("nodes list %v", reply.ReplicaList)

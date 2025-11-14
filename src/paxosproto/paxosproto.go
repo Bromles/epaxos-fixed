@@ -1,13 +1,13 @@
 package paxosproto
 
 import (
-	"state"
+	"github.com/Bromles/epaxos-fixed/src/state"
 )
 
 type Prepare struct {
-	LeaderId   int32
-	Instance   int32
-	Ballot     int32
+	LeaderId int32
+	Instance int32
+	Ballot   int32
 }
 
 type PrepareReply struct {

@@ -1,31 +1,36 @@
 package epaxos
 
 import (
-	"bloomfilter"
-	"dlog"
 	"encoding/binary"
-	"epaxosproto"
-	"fastrpc"
-	"genericsmr"
-	"genericsmrproto"
 	"io"
 	"log"
-	"state"
 	"sync"
 	"time"
+
+	"github.com/Bromles/epaxos-fixed/src/bloomfilter"
+	"github.com/Bromles/epaxos-fixed/src/dlog"
+	"github.com/Bromles/epaxos-fixed/src/epaxosproto"
+	"github.com/Bromles/epaxos-fixed/src/fastrpc"
+	"github.com/Bromles/epaxos-fixed/src/genericsmr"
+	"github.com/Bromles/epaxos-fixed/src/genericsmrproto"
+	"github.com/Bromles/epaxos-fixed/src/state"
 )
 
 const MAX_INSTANCE = 10 * 1024 * 1024
 
-const MAX_DEPTH_DEP = 10
-const TRUE = uint8(1)
-const FALSE = uint8(0)
-const ADAPT_TIME_SEC = 10
+const (
+	MAX_DEPTH_DEP  = 10
+	TRUE           = uint8(1)
+	FALSE          = uint8(0)
+	ADAPT_TIME_SEC = 10
+)
 
 const COMMIT_GRACE_PERIOD = 10 * 1e9 // 10 second(s)
 
-const BF_K = 4
-const BF_M_N = 32.0
+const (
+	BF_K   = 4
+	BF_M_N = 32.0
+)
 
 const HT_INIT_SIZE = 200000
 
@@ -37,8 +42,10 @@ const HT_INIT_SIZE = 200000
 // - must run with thriftiness on (recovery is incorrect otherwise)
 // - when conflicts are transitive skip waiting prior commuting commands
 
-var cpMarker []state.Command
-var cpcounter = 0
+var (
+	cpMarker  []state.Command
+	cpcounter = 0
+)
 
 type Replica struct {
 	*genericsmr.Replica
@@ -76,7 +83,7 @@ type Replica struct {
 	IsLeader              bool // does this replica think it is the leader
 	maxRecvBallot         int32
 	batchWait             int
-	transconf bool
+	transconf             bool
 }
 
 type Instance struct {
@@ -149,7 +156,8 @@ func NewReplica(id int, peerAddrList []string, thrifty bool, exec bool, lread bo
 		false,
 		-1,
 		batchWait,
-	transconf}
+		transconf,
+	}
 
 	r.Beacon = beacon
 	r.Durable = durable
@@ -170,7 +178,7 @@ func NewReplica(id int, peerAddrList []string, thrifty bool, exec bool, lread bo
 
 	cpMarker = make([]state.Command, 0)
 
-	//register RPCs
+	// register RPCs
 	r.prepareRPC = r.RegisterRPC(new(epaxosproto.Prepare), r.prepareChan)
 	r.prepareReplyRPC = r.RegisterRPC(new(epaxosproto.PrepareReply), r.prepareReplyChan)
 	r.preAcceptRPC = r.RegisterRPC(new(epaxosproto.PreAccept), r.preAcceptChan)
@@ -188,7 +196,7 @@ func NewReplica(id int, peerAddrList []string, thrifty bool, exec bool, lread bo
 	return r
 }
 
-//append a log entry to stable storage
+// append a log entry to stable storage
 func (r *Replica) recordInstanceMetadata(inst *Instance) {
 	if !r.Durable {
 		return
@@ -207,7 +215,7 @@ func (r *Replica) recordInstanceMetadata(inst *Instance) {
 	r.StableStore.Write(b[:])
 }
 
-//write a sequence of commands to stable storage
+// write a sequence of commands to stable storage
 func (r *Replica) recordCommands(cmds []state.Command) {
 	if !r.Durable {
 		return
@@ -221,7 +229,7 @@ func (r *Replica) recordCommands(cmds []state.Command) {
 	}
 }
 
-//sync with the stable store
+// sync with the stable store
 func (r *Replica) sync() {
 	if !r.Durable {
 		return
@@ -232,8 +240,10 @@ func (r *Replica) sync() {
 
 /* Clock goroutine */
 
-var fastClockChan chan bool
-var slowClockChan chan bool
+var (
+	fastClockChan chan bool
+	slowClockChan chan bool
+)
 
 func (r *Replica) fastClock() {
 	for !r.Shutdown {
@@ -241,6 +251,7 @@ func (r *Replica) fastClock() {
 		fastClockChan <- true
 	}
 }
+
 func (r *Replica) slowClock() {
 	for !r.Shutdown {
 		time.Sleep(150 * 1e6) // 150 ms
@@ -291,7 +302,7 @@ func (r *Replica) run() {
 	fastClockChan = make(chan bool, 1)
 	go r.slowClock()
 
-	//Enabled fast clock when batching
+	// Enabled fast clock when batching
 	if r.BatchingEnabled() {
 		go r.fastClock()
 	}
@@ -305,69 +316,68 @@ func (r *Replica) run() {
 	go r.WaitForClientConnections()
 
 	for !r.Shutdown {
-
 		select {
 
 		case propose := <-onOffProposeChan:
-			//got a Propose from a client
+			// got a Propose from a client
 			r.handlePropose(propose)
-			//deactivate new proposals channel to prioritize the handling of other protocol messages,
-			//and to allow commands to accumulate for batching
+			// deactivate new proposals channel to prioritize the handling of other protocol messages,
+			// and to allow commands to accumulate for batching
 			if r.BatchingEnabled() {
 				onOffProposeChan = nil
 			}
 			break
 
 		case <-fastClockChan:
-			//activate new proposals channel
+			// activate new proposals channel
 			onOffProposeChan = r.ProposeChan
 			break
 
 		case prepareS := <-r.prepareChan:
 			prepare := prepareS.(*epaxosproto.Prepare)
-			//got a Prepare message
+			// got a Prepare message
 			dlog.Printf("Received Prepare %d.%d w. ballot %d\n", prepare.Replica, prepare.Instance, prepare.Ballot)
 			r.handlePrepare(prepare)
 			break
 
 		case preAcceptS := <-r.preAcceptChan:
 			preAccept := preAcceptS.(*epaxosproto.PreAccept)
-			//got a PreAccept message
+			// got a PreAccept message
 			dlog.Printf("Received PreAccept %d.%d w. ballot %d\n", preAccept.Replica, preAccept.Instance, preAccept.Ballot)
 			r.handlePreAccept(preAccept)
 			break
 
 		case acceptS := <-r.acceptChan:
 			accept := acceptS.(*epaxosproto.Accept)
-			//got an Accept message
+			// got an Accept message
 			dlog.Printf("Received Accept %d.%d w. ballot %d\n", accept.Replica, accept.Instance, accept.Ballot)
 			r.handleAccept(accept)
 			break
 
 		case commitS := <-r.commitChan:
 			commit := commitS.(*epaxosproto.Commit)
-			//got a Commit message
+			// got a Commit message
 			dlog.Printf("Received Commit %d.%d\n", commit.Replica, commit.Instance)
 			r.handleCommit(commit)
 			break
 
 		case prepareReplyS := <-r.prepareReplyChan:
 			prepareReply := prepareReplyS.(*epaxosproto.PrepareReply)
-			//got a Prepare reply
+			// got a Prepare reply
 			dlog.Printf("Received PrepareReply %d.%d w. ballot %d from %d\n", prepareReply.Replica, prepareReply.Instance, prepareReply.Ballot, prepareReply.AcceptorId)
 			r.handlePrepareReply(prepareReply)
 			break
 
 		case preAcceptReplyS := <-r.preAcceptReplyChan:
 			preAcceptReply := preAcceptReplyS.(*epaxosproto.PreAcceptReply)
-			//got a PreAccept reply
+			// got a PreAccept reply
 			dlog.Printf("Received PreAcceptReply %d.%d w. ballot %d\n", preAcceptReply.Replica, preAcceptReply.Instance, preAcceptReply.Ballot)
 			r.handlePreAcceptReply(preAcceptReply)
 			break
 
 		case acceptReplyS := <-r.acceptReplyChan:
 			acceptReply := acceptReplyS.(*epaxosproto.AcceptReply)
-			//got an Accept reply
+			// got an Accept reply
 			dlog.Printf("Received AcceptReply %d.%d w. ballot %d\n", acceptReply.Replica, acceptReply.Instance, acceptReply.Ballot)
 			r.handleAcceptReply(acceptReply)
 			break
@@ -531,7 +541,6 @@ func (r *Replica) bcastPrepare(replica int32, instance int32) {
 		r.SendMsg(q, r.prepareRPC, args)
 		sent++
 	}
-
 }
 
 func (r *Replica) bcastPreAccept(replica int32, instance int32) {
@@ -698,7 +707,7 @@ func (r *Replica) updateConflicts(cmds []state.Command, replica int32, instance 
 
 func (r *Replica) updateAttributes(cmds []state.Command, seq int32, deps []int32, replica int32, instance int32) (int32, []int32, bool) {
 	// FIXME read/read conflicts?
-	changed := false	
+	changed := false
 	for q := 0; q < r.N; q++ {
 		if r.Id != replica && int32(q) == replica {
 			continue
@@ -766,7 +775,7 @@ func equal(deps1 []int32, deps2 []int32) bool {
 ***********************************************************************/
 
 func (r *Replica) handlePropose(propose *genericsmr.Propose) {
-	//TODO!! Handle client retries
+	// TODO!! Handle client retries
 
 	batchSize := len(r.ProposeChan) + 1
 	r.Mutex.Lock()
@@ -791,11 +800,9 @@ func (r *Replica) handlePropose(propose *genericsmr.Propose) {
 	r.startPhase1(cmds, r.Id, r.crtInstance[r.Id], r.Id, proposals)
 
 	cpcounter += len(cmds)
-
 }
 
 func (r *Replica) startPhase1(cmds []state.Command, replica int32, instance int32, ballot int32, proposals []*genericsmr.Propose) {
-
 	// init command attributes
 	seq := int32(0)
 	deps := make([]int32, r.N)
@@ -824,7 +831,6 @@ func (r *Replica) startPhase1(cmds []state.Command, replica int32, instance int3
 
 	dlog.Printf("Phase1Start in %d.%d w. (ballot=%d, seq=%d, deps=%d)\n", replica, instance, ballot, seq, deps)
 	r.bcastPreAccept(replica, instance)
-
 }
 
 func (r *Replica) handlePreAccept(preAccept *epaxosproto.PreAccept) {
@@ -859,15 +865,13 @@ func (r *Replica) handlePreAccept(preAccept *epaxosproto.PreAccept) {
 
 	// differ from original code: TLA fix
 	if inst.Status >= epaxosproto.ACCEPTED {
-
-		//reordered handling of commit/accept and pre-accept
+		// reordered handling of commit/accept and pre-accept
 		if inst.Cmds == nil {
 			r.InstanceSpace[preAccept.LeaderId][preAccept.Instance].Cmds = preAccept.Command
 			r.updateConflicts(preAccept.Command, preAccept.Replica, preAccept.Instance, preAccept.Seq)
 			r.recordCommands(preAccept.Command)
 			r.sync()
 		}
-
 	} else {
 
 		seq, deps, changed := r.updateAttributes(preAccept.Command, preAccept.Seq, preAccept.Deps, preAccept.Replica, preAccept.Instance)
@@ -897,7 +901,8 @@ func (r *Replica) handlePreAccept(preAccept *epaxosproto.PreAccept) {
 		inst.Seq,
 		inst.Deps,
 		r.CommittedUpTo,
-		inst.Status}
+		inst.Status,
+	}
 	r.replyPreAccept(preAccept.LeaderId, reply)
 }
 
@@ -1001,7 +1006,8 @@ func (r *Replica) handlePreAcceptReply(pareply *epaxosproto.PreAcceptReply) {
 						TRUE,
 						inst.lb.clientProposals[i].CommandId,
 						state.NIL(),
-						inst.lb.clientProposals[i].Timestamp},
+						inst.lb.clientProposals[i].Timestamp,
+					},
 					inst.lb.clientProposals[i].Reply,
 					inst.lb.clientProposals[i].Mutex)
 			}
@@ -1038,7 +1044,6 @@ func (r *Replica) handlePreAcceptReply(pareply *epaxosproto.PreAcceptReply) {
 		r.Mutex.Unlock()
 	} else {
 		dlog.Printf("Not enough pre-accept replies in %d.%d (preAcceptOk=%d, slowQuorumSize=%d, precondition=%t)\n", pareply.Replica, pareply.Instance, lb.preAcceptOKs, r.Replica.SlowQuorumSize(), precondition)
-
 	}
 }
 
@@ -1080,7 +1085,6 @@ func (r *Replica) handleAccept(accept *epaxosproto.Accept) {
 
 	reply := &epaxosproto.AcceptReply{accept.Replica, accept.Instance, inst.bal}
 	r.replyAccept(accept.LeaderId, reply)
-
 }
 
 func (r *Replica) handleAcceptReply(areply *epaxosproto.AcceptReply) {
@@ -1122,7 +1126,7 @@ func (r *Replica) handleAcceptReply(areply *epaxosproto.AcceptReply) {
 		inst.Status = epaxosproto.COMMITTED
 		r.updateCommitted(areply.Replica)
 		r.recordInstanceMetadata(inst)
-		r.sync() //is this necessary here?
+		r.sync() // is this necessary here?
 
 		if inst.lb.clientProposals != nil && !r.Dreply {
 			// give clients the all clear
@@ -1132,7 +1136,8 @@ func (r *Replica) handleAcceptReply(areply *epaxosproto.AcceptReply) {
 						TRUE,
 						inst.lb.clientProposals[i].CommandId,
 						state.NIL(),
-						inst.lb.clientProposals[i].Timestamp},
+						inst.lb.clientProposals[i].Timestamp,
+					},
 					inst.lb.clientProposals[i].Reply,
 					inst.lb.clientProposals[i].Mutex)
 			}
@@ -1206,7 +1211,6 @@ func (r *Replica) handleCommit(commit *epaxosproto.Commit) {
 	r.updateCommitted(commit.Replica)
 	r.recordInstanceMetadata(r.InstanceSpace[commit.Replica][commit.Instance])
 	r.recordCommands(commit.Command)
-
 }
 
 /**********************************************************************
@@ -1257,7 +1261,8 @@ func (r *Replica) startRecoveryForInstance(replica int32, instance int32) {
 		inst.Status,
 		inst.Cmds,
 		inst.Seq,
-		inst.Deps}
+		inst.Deps,
+	}
 
 	lb.prepareReplies = append(lb.prepareReplies, preply)
 	lb.leaderResponded = r.Id == replica
@@ -1294,7 +1299,8 @@ func (r *Replica) handlePrepare(prepare *epaxosproto.Prepare) {
 		inst.Status,
 		inst.Cmds,
 		inst.Seq,
-		inst.Deps}
+		inst.Deps,
+	}
 	r.replyPrepare(prepare.LeaderId, preply)
 }
 
@@ -1450,7 +1456,6 @@ func (r *Replica) handleTryPreAccept(tpa *epaxosproto.TryPreAccept) {
 	rtpa := &epaxosproto.TryPreAcceptReply{r.Id, tpa.Replica, tpa.Instance, inst.bal, inst.vbal, confRep, confInst, confStatus}
 
 	r.replyTryPreAccept(tpa.LeaderId, rtpa)
-
 }
 
 func (r *Replica) findPreAcceptConflicts(cmds []state.Command, replica int32, instance int32, seq int32, deps []int32) (bool, int32, int32) {
@@ -1470,7 +1475,7 @@ func (r *Replica) findPreAcceptConflicts(cmds []state.Command, replica int32, in
 		for i := r.ExecedUpTo[q]; i <= r.crtInstance[q]; i++ { // FIXME this is not enough imho.
 			// dlog.Printf("Checking %d.%d \n",q,i)
 			if i == -1 {
-				//do not check placeholder
+				// do not check placeholder
 				continue
 			}
 			if replica == q && instance == i {
@@ -1479,7 +1484,7 @@ func (r *Replica) findPreAcceptConflicts(cmds []state.Command, replica int32, in
 				break
 			}
 			if i == deps[q] {
-				//the instance cannot be a dependency for itself
+				// the instance cannot be a dependency for itself
 				continue
 			}
 			inst := r.InstanceSpace[q][i]
@@ -1530,7 +1535,7 @@ func (r *Replica) handleTryPreAcceptReply(tpar *epaxosproto.TryPreAcceptReply) {
 	if tpar.VBallot == lb.lastTriedBallot && tpar.ConflictInstance == 0 {
 		lb.preAcceptOKs++
 		if lb.preAcceptOKs >= r.N/2 {
-			//it's safe to start Accept phase
+			// it's safe to start Accept phase
 			lb.status = epaxosproto.ACCEPTED
 			lb.tryingToPreAccept = false
 			lb.acceptOKs = 0
@@ -1554,7 +1559,7 @@ func (r *Replica) handleTryPreAcceptReply(tpar *epaxosproto.TryPreAcceptReply) {
 	lb.tpaAccepted = lb.tpaAccepted || (tpar.ConflictStatus >= epaxosproto.ACCEPTED) // TLA spec. (page 39)
 
 	if lb.tpaReps >= r.Replica.SlowQuorumSize()-1 && lb.tpaAccepted {
-		//abandon recovery, restart from phase 1
+		// abandon recovery, restart from phase 1
 		dlog.Printf("Abandon recovery in %d.%d restart phase1 \n", tpar.Replica, tpar.Instance)
 		lb.tryingToPreAccept = false
 		r.startPhase1(lb.cmds, tpar.Replica, tpar.Instance, lb.lastTriedBallot, lb.clientProposals)
@@ -1570,12 +1575,12 @@ func (r *Replica) handleTryPreAcceptReply(tpar *epaxosproto.TryPreAcceptReply) {
 	}
 
 	if notInQuorum == r.N/2 {
-		//this is to prevent defer cycles
+		// this is to prevent defer cycles
 		if present, dq, _ := deferredByInstance(tpar.Replica, tpar.Instance); present {
 			if lb.possibleQuorum[dq] {
 				dlog.Printf("Abandon recovery in %d.%d restart phase1 \n", tpar.Replica, tpar.Instance)
-				//an instance whose leader must have been in this instance's quorum has been deferred for this instance => contradiction
-				//abandon recovery, restart from phase 1
+				// an instance whose leader must have been in this instance's quorum has been deferred for this instance => contradiction
+				// abandon recovery, restart from phase 1
 				lb.tryingToPreAccept = false
 				r.makeBallot(tpar.Replica, tpar.Instance)
 				r.startPhase1(lb.cmds, tpar.Replica, tpar.Instance, lb.lastTriedBallot, lb.clientProposals)
@@ -1586,7 +1591,7 @@ func (r *Replica) handleTryPreAcceptReply(tpar *epaxosproto.TryPreAcceptReply) {
 
 	if lb.tpaReps >= r.N/2 {
 		dlog.Printf("Abandon recovery in %d.%d \n", tpar.Replica, tpar.Instance)
-		//defer recovery and update deferred information
+		// defer recovery and update deferred information
 		updateDeferred(tpar.Replica, tpar.Instance, tpar.ConflictReplica, tpar.ConflictInstance)
 		lb.tryingToPreAccept = false
 	}

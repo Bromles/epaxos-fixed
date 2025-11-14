@@ -1,7 +1,7 @@
 package genericsmrproto
 
 import (
-	"state"
+	"github.com/Bromles/epaxos-fixed/src/state"
 )
 
 const (
@@ -70,16 +70,12 @@ type PingArgs struct {
 	ActAsLeader uint8
 }
 
-type PingReply struct {
-}
+type PingReply struct{}
 
-type BeTheLeaderArgs struct {
-}
+type BeTheLeaderArgs struct{}
 
-type BeTheLeaderReply struct {
-}
+type BeTheLeaderReply struct{}
 
 type Stats struct {
 	M map[string]int `json:"stats"`
 }
-

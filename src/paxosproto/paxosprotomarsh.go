@@ -3,10 +3,11 @@ package paxosproto
 import (
 	"bufio"
 	"encoding/binary"
-	"fastrpc"
 	"io"
-	"state"
 	"sync"
+
+	"github.com/Bromles/epaxos-fixed/src/fastrpc"
+	"github.com/Bromles/epaxos-fixed/src/state"
 )
 
 type byteReader interface {
@@ -17,6 +18,7 @@ type byteReader interface {
 func (t *Prepare) New() fastrpc.Serializable {
 	return new(Prepare)
 }
+
 func (t *Prepare) BinarySize() (nbytes int, sizeKnown bool) {
 	return 13, true
 }
@@ -45,11 +47,13 @@ func (p *PrepareCache) Get() *Prepare {
 	}
 	return t
 }
+
 func (p *PrepareCache) Put(t *Prepare) {
 	p.mu.Lock()
 	p.cache = append(p.cache, t)
 	p.mu.Unlock()
 }
+
 func (t *Prepare) Marshal(wire io.Writer) {
 	var b [12]byte
 	var bs []byte
@@ -79,15 +83,16 @@ func (t *Prepare) Unmarshal(wire io.Reader) error {
 	if _, err := io.ReadAtLeast(wire, bs, 12); err != nil {
 		return err
 	}
-	t.LeaderId = int32((uint32(bs[0]) | (uint32(bs[1]) << 8) | (uint32(bs[2]) << 16) | (uint32(bs[3]) << 24)))
-	t.Instance = int32((uint32(bs[4]) | (uint32(bs[5]) << 8) | (uint32(bs[6]) << 16) | (uint32(bs[7]) << 24)))
-	t.Ballot = int32((uint32(bs[8]) | (uint32(bs[9]) << 8) | (uint32(bs[10]) << 16) | (uint32(bs[11]) << 24)))
+	t.LeaderId = int32(uint32(bs[0]) | (uint32(bs[1]) << 8) | (uint32(bs[2]) << 16) | (uint32(bs[3]) << 24))
+	t.Instance = int32(uint32(bs[4]) | (uint32(bs[5]) << 8) | (uint32(bs[6]) << 16) | (uint32(bs[7]) << 24))
+	t.Ballot = int32(uint32(bs[8]) | (uint32(bs[9]) << 8) | (uint32(bs[10]) << 16) | (uint32(bs[11]) << 24))
 	return nil
 }
 
 func (t *PrepareReply) New() fastrpc.Serializable {
 	return new(PrepareReply)
 }
+
 func (t *PrepareReply) BinarySize() (nbytes int, sizeKnown bool) {
 	return 0, false
 }
@@ -116,11 +121,13 @@ func (p *PrepareReplyCache) Get() *PrepareReply {
 	}
 	return t
 }
+
 func (p *PrepareReplyCache) Put(t *PrepareReply) {
 	p.mu.Lock()
 	p.cache = append(p.cache, t)
 	p.mu.Unlock()
 }
+
 func (t *PrepareReply) Marshal(wire io.Writer) {
 	var b [20]byte
 	var bs []byte
@@ -173,11 +180,11 @@ func (t *PrepareReply) Unmarshal(rr io.Reader) error {
 	if _, err := io.ReadAtLeast(wire, bs, 20); err != nil {
 		return err
 	}
-	t.Instance = int32((uint32(bs[0]) | (uint32(bs[1]) << 8) | (uint32(bs[2]) << 16) | (uint32(bs[3]) << 24)))
-	t.Ballot = int32((uint32(bs[4]) | (uint32(bs[5]) << 8) | (uint32(bs[6]) << 16) | (uint32(bs[7]) << 24)))
-	t.VBallot = int32((uint32(bs[8]) | (uint32(bs[9]) << 8) | (uint32(bs[10]) << 16) | (uint32(bs[11]) << 24)))
-	t.DefaultBallot = int32((uint32(bs[12]) | (uint32(bs[13]) << 8) | (uint32(bs[14]) << 16) | (uint32(bs[15]) << 24)))
-	t.AcceptorId = int32((uint32(bs[16]) | (uint32(bs[17]) << 8) | (uint32(bs[18]) << 16) | (uint32(bs[19]) << 24)))
+	t.Instance = int32(uint32(bs[0]) | (uint32(bs[1]) << 8) | (uint32(bs[2]) << 16) | (uint32(bs[3]) << 24))
+	t.Ballot = int32(uint32(bs[4]) | (uint32(bs[5]) << 8) | (uint32(bs[6]) << 16) | (uint32(bs[7]) << 24))
+	t.VBallot = int32(uint32(bs[8]) | (uint32(bs[9]) << 8) | (uint32(bs[10]) << 16) | (uint32(bs[11]) << 24))
+	t.DefaultBallot = int32(uint32(bs[12]) | (uint32(bs[13]) << 8) | (uint32(bs[14]) << 16) | (uint32(bs[15]) << 24))
+	t.AcceptorId = int32(uint32(bs[16]) | (uint32(bs[17]) << 8) | (uint32(bs[18]) << 16) | (uint32(bs[19]) << 24))
 	alen1, err := binary.ReadVarint(wire)
 	if err != nil {
 		return err
@@ -192,6 +199,7 @@ func (t *PrepareReply) Unmarshal(rr io.Reader) error {
 func (t *Accept) New() fastrpc.Serializable {
 	return new(Accept)
 }
+
 func (t *Accept) BinarySize() (nbytes int, sizeKnown bool) {
 	return 0, false
 }
@@ -220,11 +228,13 @@ func (p *AcceptCache) Get() *Accept {
 	}
 	return t
 }
+
 func (p *AcceptCache) Put(t *Accept) {
 	p.mu.Lock()
 	p.cache = append(p.cache, t)
 	p.mu.Unlock()
 }
+
 func (t *Accept) Marshal(wire io.Writer) {
 	var b [12]byte
 	var bs []byte
@@ -267,9 +277,9 @@ func (t *Accept) Unmarshal(rr io.Reader) error {
 	if _, err := io.ReadAtLeast(wire, bs, 12); err != nil {
 		return err
 	}
-	t.LeaderId = int32((uint32(bs[0]) | (uint32(bs[1]) << 8) | (uint32(bs[2]) << 16) | (uint32(bs[3]) << 24)))
-	t.Instance = int32((uint32(bs[4]) | (uint32(bs[5]) << 8) | (uint32(bs[6]) << 16) | (uint32(bs[7]) << 24)))
-	t.Ballot = int32((uint32(bs[8]) | (uint32(bs[9]) << 8) | (uint32(bs[10]) << 16) | (uint32(bs[11]) << 24)))
+	t.LeaderId = int32(uint32(bs[0]) | (uint32(bs[1]) << 8) | (uint32(bs[2]) << 16) | (uint32(bs[3]) << 24))
+	t.Instance = int32(uint32(bs[4]) | (uint32(bs[5]) << 8) | (uint32(bs[6]) << 16) | (uint32(bs[7]) << 24))
+	t.Ballot = int32(uint32(bs[8]) | (uint32(bs[9]) << 8) | (uint32(bs[10]) << 16) | (uint32(bs[11]) << 24))
 	alen1, err := binary.ReadVarint(wire)
 	if err != nil {
 		return err
@@ -284,6 +294,7 @@ func (t *Accept) Unmarshal(rr io.Reader) error {
 func (t *AcceptReply) New() fastrpc.Serializable {
 	return new(AcceptReply)
 }
+
 func (t *AcceptReply) BinarySize() (nbytes int, sizeKnown bool) {
 	return 9, true
 }
@@ -312,11 +323,13 @@ func (p *AcceptReplyCache) Get() *AcceptReply {
 	}
 	return t
 }
+
 func (p *AcceptReplyCache) Put(t *AcceptReply) {
 	p.mu.Lock()
 	p.cache = append(p.cache, t)
 	p.mu.Unlock()
 }
+
 func (t *AcceptReply) Marshal(wire io.Writer) {
 	var b [9]byte
 	var bs []byte
@@ -341,14 +354,15 @@ func (t *AcceptReply) Unmarshal(wire io.Reader) error {
 	if _, err := io.ReadAtLeast(wire, bs, 8); err != nil {
 		return err
 	}
-	t.Instance = int32((uint32(bs[0]) | (uint32(bs[1]) << 8) | (uint32(bs[2]) << 16) | (uint32(bs[3]) << 24)))
-	t.Ballot = int32((uint32(bs[4]) | (uint32(bs[5]) << 8) | (uint32(bs[6]) << 16) | (uint32(bs[7]) << 24)))
+	t.Instance = int32(uint32(bs[0]) | (uint32(bs[1]) << 8) | (uint32(bs[2]) << 16) | (uint32(bs[3]) << 24))
+	t.Ballot = int32(uint32(bs[4]) | (uint32(bs[5]) << 8) | (uint32(bs[6]) << 16) | (uint32(bs[7]) << 24))
 	return nil
 }
 
 func (t *Commit) New() fastrpc.Serializable {
 	return new(Commit)
 }
+
 func (t *Commit) BinarySize() (nbytes int, sizeKnown bool) {
 	return 0, false
 }
@@ -377,11 +391,13 @@ func (p *CommitCache) Get() *Commit {
 	}
 	return t
 }
+
 func (p *CommitCache) Put(t *Commit) {
 	p.mu.Lock()
 	p.cache = append(p.cache, t)
 	p.mu.Unlock()
 }
+
 func (t *Commit) Marshal(wire io.Writer) {
 	var b [12]byte
 	var bs []byte
@@ -424,9 +440,9 @@ func (t *Commit) Unmarshal(rr io.Reader) error {
 	if _, err := io.ReadAtLeast(wire, bs, 12); err != nil {
 		return err
 	}
-	t.LeaderId = int32((uint32(bs[0]) | (uint32(bs[1]) << 8) | (uint32(bs[2]) << 16) | (uint32(bs[3]) << 24)))
-	t.Instance = int32((uint32(bs[4]) | (uint32(bs[5]) << 8) | (uint32(bs[6]) << 16) | (uint32(bs[7]) << 24)))
-	t.Ballot = int32((uint32(bs[8]) | (uint32(bs[9]) << 8) | (uint32(bs[10]) << 16) | (uint32(bs[11]) << 24)))
+	t.LeaderId = int32(uint32(bs[0]) | (uint32(bs[1]) << 8) | (uint32(bs[2]) << 16) | (uint32(bs[3]) << 24))
+	t.Instance = int32(uint32(bs[4]) | (uint32(bs[5]) << 8) | (uint32(bs[6]) << 16) | (uint32(bs[7]) << 24))
+	t.Ballot = int32(uint32(bs[8]) | (uint32(bs[9]) << 8) | (uint32(bs[10]) << 16) | (uint32(bs[11]) << 24))
 	alen1, err := binary.ReadVarint(wire)
 	if err != nil {
 		return err
@@ -441,6 +457,7 @@ func (t *Commit) Unmarshal(rr io.Reader) error {
 func (t *CommitShort) New() fastrpc.Serializable {
 	return new(CommitShort)
 }
+
 func (t *CommitShort) BinarySize() (nbytes int, sizeKnown bool) {
 	return 16, true
 }
@@ -469,11 +486,13 @@ func (p *CommitShortCache) Get() *CommitShort {
 	}
 	return t
 }
+
 func (p *CommitShortCache) Put(t *CommitShort) {
 	p.mu.Lock()
 	p.cache = append(p.cache, t)
 	p.mu.Unlock()
 }
+
 func (t *CommitShort) Marshal(wire io.Writer) {
 	var b [16]byte
 	var bs []byte
@@ -508,9 +527,9 @@ func (t *CommitShort) Unmarshal(wire io.Reader) error {
 	if _, err := io.ReadAtLeast(wire, bs, 16); err != nil {
 		return err
 	}
-	t.LeaderId = int32((uint32(bs[0]) | (uint32(bs[1]) << 8) | (uint32(bs[2]) << 16) | (uint32(bs[3]) << 24)))
-	t.Instance = int32((uint32(bs[4]) | (uint32(bs[5]) << 8) | (uint32(bs[6]) << 16) | (uint32(bs[7]) << 24)))
-	t.Count = int32((uint32(bs[8]) | (uint32(bs[9]) << 8) | (uint32(bs[10]) << 16) | (uint32(bs[11]) << 24)))
-	t.Ballot = int32((uint32(bs[12]) | (uint32(bs[13]) << 8) | (uint32(bs[14]) << 16) | (uint32(bs[15]) << 24)))
+	t.LeaderId = int32(uint32(bs[0]) | (uint32(bs[1]) << 8) | (uint32(bs[2]) << 16) | (uint32(bs[3]) << 24))
+	t.Instance = int32(uint32(bs[4]) | (uint32(bs[5]) << 8) | (uint32(bs[6]) << 16) | (uint32(bs[7]) << 24))
+	t.Count = int32(uint32(bs[8]) | (uint32(bs[9]) << 8) | (uint32(bs[10]) << 16) | (uint32(bs[11]) << 24))
+	t.Ballot = int32(uint32(bs[12]) | (uint32(bs[13]) << 8) | (uint32(bs[14]) << 16) | (uint32(bs[15]) << 24))
 	return nil
 }

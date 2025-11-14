@@ -1,24 +1,27 @@
 package mencius
 
 import (
-	"dlog"
 	"encoding/binary"
-	"fastrpc"
-	"genericsmr"
-	"genericsmrproto"
 	"io"
 	"log"
-	"menciusproto"
-	"state"
 	"time"
+
+	"github.com/Bromles/epaxos-fixed/src/dlog"
+	"github.com/Bromles/epaxos-fixed/src/fastrpc"
+	"github.com/Bromles/epaxos-fixed/src/genericsmr"
+	"github.com/Bromles/epaxos-fixed/src/genericsmrproto"
+	"github.com/Bromles/epaxos-fixed/src/menciusproto"
+	"github.com/Bromles/epaxos-fixed/src/state"
 )
 
-const CHAN_BUFFER_SIZE = 200000
-const WAIT_BEFORE_SKIP_MS = 50
-const NB_INST_TO_SKIP = 100000
-const MAX_SKIPS_WAITING = 20
-const TRUE = uint8(1)
-const FALSE = uint8(0)
+const (
+	CHAN_BUFFER_SIZE    = 200000
+	WAIT_BEFORE_SKIP_MS = 50
+	NB_INST_TO_SKIP     = 100000
+	MAX_SKIPS_WAITING   = 20
+	TRUE                = uint8(1)
+	FALSE               = uint8(0)
+)
 
 type Replica struct {
 	*genericsmr.Replica      // extends a generic Paxos replica
@@ -85,7 +88,8 @@ func NewReplica(id int, peerAddrList []string, thrifty bool, exec bool, lread bo
 	for i := 0; i < len(skippedTo); i++ {
 		skippedTo[i] = -1
 	}
-	r := &Replica{genericsmr.NewReplica(id, peerAddrList, thrifty, exec, lread, dreply, failures),
+	r := &Replica{
+		genericsmr.NewReplica(id, peerAddrList, thrifty, exec, lread, dreply, failures),
 		make(chan fastrpc.Serializable, genericsmr.CHAN_BUFFER_SIZE*4),
 		make(chan fastrpc.Serializable, genericsmr.CHAN_BUFFER_SIZE),
 		make(chan fastrpc.Serializable, genericsmr.CHAN_BUFFER_SIZE),
@@ -105,7 +109,8 @@ func NewReplica(id int, peerAddrList []string, thrifty bool, exec bool, lread bo
 		false,
 		0,
 		0,
-		skippedTo}
+		skippedTo,
+	}
 
 	r.Durable = durable
 
@@ -121,7 +126,7 @@ func NewReplica(id int, peerAddrList []string, thrifty bool, exec bool, lread bo
 	return r
 }
 
-//append a log entry to stable storage
+// append a log entry to stable storage
 func (r *Replica) recordInstanceMetadata(inst *Instance) {
 	if !r.Durable {
 		return
@@ -139,7 +144,7 @@ func (r *Replica) recordInstanceMetadata(inst *Instance) {
 	r.StableStore.Write(b[:])
 }
 
-//write a sequence of commands to stable storage
+// write a sequence of commands to stable storage
 func (r *Replica) recordCommand(cmd *state.Command) {
 	if !r.Durable {
 		return
@@ -151,7 +156,7 @@ func (r *Replica) recordCommand(cmd *state.Command) {
 	cmd.Marshal(io.Writer(r.StableStore))
 }
 
-//sync with the stable store
+// sync with the stable store
 func (r *Replica) sync() {
 	if !r.Durable {
 		return
@@ -187,46 +192,45 @@ func (r *Replica) run() {
 	go r.WaitForClientConnections()
 
 	for !r.Shutdown {
-
 		select {
 
 		case skipS := <-r.skipChan:
 			skip := skipS.(*menciusproto.Skip)
-			//got a Skip from another replica
+			// got a Skip from another replica
 			dlog.Printf("Skip for instances %d-%d\n", skip.StartInstance, skip.EndInstance)
 			r.handleSkip(skip)
 
 		case prepareS := <-r.prepareChan:
 			prepare := prepareS.(*menciusproto.Prepare)
-			//got a Prepare message
+			// got a Prepare message
 			dlog.Printf("Received Prepare from replica %d, for instance %d\n", prepare.LeaderId, prepare.Instance)
 			r.handlePrepare(prepare)
 			break
 
 		case acceptS := <-r.acceptChan:
 			accept := acceptS.(*menciusproto.Accept)
-			//got an Accept message
+			// got an Accept message
 			dlog.Printf("Received Accept from replica %d, for instance %d\n", accept.LeaderId, accept.Instance)
 			r.handleAccept(accept)
 			break
 
 		case commitS := <-r.commitChan:
 			commit := commitS.(*menciusproto.Commit)
-			//got a Commit message
+			// got a Commit message
 			dlog.Printf("Received Commit from replica %d, for instance %d\n", commit.LeaderId, commit.Instance)
 			r.handleCommit(commit)
 			break
 
 		case prepareReplyS := <-r.prepareReplyChan:
 			prepareReply := prepareReplyS.(*menciusproto.PrepareReply)
-			//got a Prepare reply
+			// got a Prepare reply
 			dlog.Printf("Received PrepareReply for instance %d\n", prepareReply.Instance)
 			r.handlePrepareReply(prepareReply)
 			break
 
 		case acceptReplyS := <-r.acceptReplyChan:
 			acceptReply := acceptReplyS.(*menciusproto.AcceptReply)
-			//got an Accept reply
+			// got an Accept reply
 			dlog.Printf("Received AcceptReply for instance %d\n", acceptReply.Instance)
 			r.handleAcceptReply(acceptReply)
 			break
@@ -250,7 +254,7 @@ func (r *Replica) run() {
 			break
 
 		case propose := <-r.ProposeChan:
-			//got a Propose from a client
+			// got a Propose from a client
 			dlog.Printf("Proposal with id %d\n", propose.CommandId)
 			r.handlePropose(propose)
 			break
@@ -286,7 +290,7 @@ func (r *Replica) bcastSkip(startInstance int32, endInstance int32, exceptReplic
 	sk.StartInstance = startInstance
 	sk.EndInstance = endInstance
 	args := &sk
-	//args := &menciusproto.Skip{r.Id, startInstance, endInstance}
+	// args := &menciusproto.Skip{r.Id, startInstance, endInstance}
 
 	n := r.N - 1
 	q := r.Id
@@ -346,7 +350,7 @@ func (r *Replica) bcastAccept(instance int32, ballot int32, skip uint8, nbInstTo
 	ma.NbInstancesToSkip = nbInstToSkip
 	ma.Command = command
 	args := &ma
-	//args := &menciusproto.Accept{r.Id, instance, ballot, skip, nbInstToSkip, command}
+	// args := &menciusproto.Accept{r.Id, instance, ballot, skip, nbInstToSkip, command}
 
 	n := r.N - 1
 	q := r.Id
@@ -407,8 +411,8 @@ func (r *Replica) bcastCommit(instance int32, skip uint8, nbInstToSkip int32, co
 	mc.Instance = instance
 	mc.Skip = skip
 	mc.NbInstancesToSkip = nbInstToSkip
-	//mc.Command = command
-	//args := &menciusproto.Commit{r.Id, instance, skip, nbInstToSkip, command}
+	// mc.Command = command
+	// args := &menciusproto.Commit{r.Id, instance, skip, nbInstToSkip, command}
 	args := &mc
 
 	n := r.N - 1
@@ -428,16 +432,17 @@ func (r *Replica) bcastCommit(instance int32, skip uint8, nbInstToSkip int32, co
 }
 
 func (r *Replica) handlePropose(propose *genericsmr.Propose) {
-
 	instNo := r.crtInstance
 	r.crtInstance += int32(r.N)
 
-	r.instanceSpace[instNo] = &Instance{false,
+	r.instanceSpace[instNo] = &Instance{
+		false,
 		0,
 		&propose.Command,
 		r.makeBallotLargerThan(0),
 		ACCEPTED,
-		&LeaderBookkeeping{propose, 0, 0, 0, 0}}
+		&LeaderBookkeeping{propose, 0, 0, 0, 0},
+	}
 
 	r.recordInstanceMetadata(r.instanceSpace[instNo])
 	r.recordCommand(&propose.Command)
@@ -448,12 +453,14 @@ func (r *Replica) handlePropose(propose *genericsmr.Propose) {
 }
 
 func (r *Replica) handleSkip(skip *menciusproto.Skip) {
-	r.instanceSpace[skip.StartInstance] = &Instance{true,
+	r.instanceSpace[skip.StartInstance] = &Instance{
+		true,
 		int(skip.EndInstance-skip.StartInstance)/r.N + 1,
 		nil,
 		0,
 		COMMITTED,
-		nil}
+		nil,
+	}
 	r.updateBlocking(skip.StartInstance)
 }
 
@@ -462,19 +469,23 @@ func (r *Replica) handlePrepare(prepare *menciusproto.Prepare) {
 
 	if inst == nil {
 		dlog.Println("Replying OK to null-instance Prepare")
-		r.replyPrepare(prepare.LeaderId, &menciusproto.PrepareReply{prepare.Instance,
+		r.replyPrepare(prepare.LeaderId, &menciusproto.PrepareReply{
+			prepare.Instance,
 			TRUE,
 			-1,
 			FALSE,
 			0,
-			state.Command{state.NONE, 0, state.NIL()}})
+			state.Command{state.NONE, 0, state.NIL()},
+		})
 
-		r.instanceSpace[prepare.Instance] = &Instance{false,
+		r.instanceSpace[prepare.Instance] = &Instance{
+			false,
 			0,
 			nil,
 			prepare.Ballot,
 			PREPARING,
-			nil}
+			nil,
+		}
 	} else {
 		ok := TRUE
 		if prepare.Ballot < inst.ballot {
@@ -487,12 +498,14 @@ func (r *Replica) handlePrepare(prepare *menciusproto.Prepare) {
 		if inst.skipped {
 			skipped = TRUE
 		}
-		r.replyPrepare(prepare.LeaderId, &menciusproto.PrepareReply{prepare.Instance,
+		r.replyPrepare(prepare.LeaderId, &menciusproto.PrepareReply{
+			prepare.Instance,
 			ok,
 			inst.ballot,
 			skipped,
 			int32(inst.nbInstSkipped),
-			*inst.command})
+			*inst.command,
+		})
 	}
 }
 
@@ -519,18 +532,20 @@ func (r *Replica) handleAccept(accept *menciusproto.Accept) {
 			skipEnd -= int32(r.N)
 		}
 		if r.skipsWaiting < MAX_SKIPS_WAITING {
-			//start a timer, waiting for a propose to arrive and fill this hole
+			// start a timer, waiting for a propose to arrive and fill this hole
 			go r.timerHelper(&DelayedSkip{skipEnd})
-			//r.delayedSkipChan <- &DelayedSkip{accept, skipStart}
+			// r.delayedSkipChan <- &DelayedSkip{accept, skipStart}
 			r.skipsWaiting++
 			flush = false
 		}
-		r.instanceSpace[r.crtInstance] = &Instance{true,
+		r.instanceSpace[r.crtInstance] = &Instance{
+			true,
 			int(skipEnd-r.crtInstance)/r.N + 1,
 			nil,
 			-1,
 			COMMITTED,
-			nil}
+			nil,
+		}
 
 		r.recordInstanceMetadata(r.instanceSpace[r.crtInstance])
 		r.sync()
@@ -542,12 +557,14 @@ func (r *Replica) handleAccept(accept *menciusproto.Accept) {
 		if accept.Skip == TRUE {
 			skip = true
 		}
-		r.instanceSpace[accept.Instance] = &Instance{skip,
+		r.instanceSpace[accept.Instance] = &Instance{
+			skip,
 			int(accept.NbInstancesToSkip),
 			&accept.Command,
 			accept.Ballot,
 			ACCEPTED,
-			nil}
+			nil,
+		}
 		r.recordInstanceMetadata(r.instanceSpace[accept.Instance])
 		r.recordCommand(&accept.Command)
 		r.sync()
@@ -609,14 +626,16 @@ func (r *Replica) handleCommit(commit *menciusproto.Commit) {
 		if commit.Skip == TRUE {
 			skip = true
 		}
-		r.instanceSpace[commit.Instance] = &Instance{skip,
+		r.instanceSpace[commit.Instance] = &Instance{
+			skip,
 			int(commit.NbInstancesToSkip),
 			nil, //&commit.Command,
 			0,
 			COMMITTED,
-			nil}
+			nil,
+		}
 	} else {
-		//inst.command = &commit.Command
+		// inst.command = &commit.Command
 		inst.status = COMMITTED
 		inst.skipped = false
 		if commit.Skip == TRUE {
@@ -698,23 +717,25 @@ func (r *Replica) handleAcceptReply(areply *menciusproto.AcceptReply) {
 	if areply.OK == TRUE {
 		inst.lb.acceptOKs++
 		if areply.SkippedStartInstance > -1 {
-			r.instanceSpace[areply.SkippedStartInstance] = &Instance{true,
+			r.instanceSpace[areply.SkippedStartInstance] = &Instance{
+				true,
 				int(areply.SkippedEndInstance-areply.SkippedStartInstance)/r.N + 1,
 				nil,
 				0,
 				COMMITTED,
-				nil}
+				nil,
+			}
 			r.updateBlocking(areply.SkippedStartInstance)
 		}
 
-		if inst.status == COMMITTED || inst.status == EXECUTED { //TODO || aargs.Ballot != inst.ballot {
+		if inst.status == COMMITTED || inst.status == EXECUTED { // TODO || aargs.Ballot != inst.ballot {
 			// we've moved on, these are delayed replies, so just ignore
 			return
 		}
 
 		if inst.lb.acceptOKs+1 > r.N>>1 {
 			if inst.skipped {
-				//TODO what if
+				// TODO what if
 			}
 			inst.status = READY
 			if !inst.skipped && areply.Instance > r.latestInstReady {
@@ -764,7 +785,7 @@ func (r *Replica) updateBlocking(instance int32) {
 		}
 		if r.blockingInstance%int32(r.N) == r.Id || inst.lb != nil {
 			if inst.status == READY {
-				//commit my instance
+				// commit my instance
 				dlog.Printf("Am about to commit instance %d\n", r.blockingInstance)
 
 				inst.status = COMMITTED
@@ -864,7 +885,7 @@ func (r *Replica) executeCommands() {
 				r.ReplyProposeTS(&genericsmrproto.ProposeReplyTS{TRUE, inst.lb.clientProposal.CommandId, val, inst.lb.clientProposal.Timestamp},
 					inst.lb.clientProposal.Reply,
 					inst.lb.clientProposal.Mutex)
-			} else if inst.command.Op == state.PUT{
+			} else if inst.command.Op == state.PUT {
 				inst.command.Execute(r.State)
 			}
 			inst.status = EXECUTED
@@ -882,19 +903,21 @@ func (r *Replica) executeCommands() {
 }
 
 func (r *Replica) forceCommit() {
-	//find what is the oldest un-initialized instance and try to take over
+	// find what is the oldest un-initialized instance and try to take over
 	problemInstance := r.blockingInstance
 
-	//try to take over the problem instance
+	// try to take over the problem instance
 	if int(problemInstance)%r.N == int(r.Id+1)%r.N {
 		log.Println("Replica", r.Id, "Trying to take over instance", problemInstance)
 		if r.instanceSpace[problemInstance] == nil {
-			r.instanceSpace[problemInstance] = &Instance{true,
+			r.instanceSpace[problemInstance] = &Instance{
+				true,
 				NB_INST_TO_SKIP,
 				&state.Command{state.NONE, 0, state.NIL()},
 				r.makeUniqueBallot(1),
 				PREPARING,
-				&LeaderBookkeeping{nil, 0, 0, 0, 0}}
+				&LeaderBookkeeping{nil, 0, 0, 0, 0},
+			}
 			r.bcastPrepare(problemInstance, r.instanceSpace[problemInstance].ballot)
 		} else {
 			log.Println("Not nil")

@@ -2,20 +2,23 @@ package gpaxos
 
 import (
 	"bufio"
-	"dlog"
-	"genericsmr"
-	"genericsmrproto"
-	"gpaxosproto"
 	"log"
-	"state"
 	"sync"
 	"time"
+
+	"github.com/Bromles/epaxos-fixed/src/dlog"
+	"github.com/Bromles/epaxos-fixed/src/genericsmr"
+	"github.com/Bromles/epaxos-fixed/src/genericsmrproto"
+	"github.com/Bromles/epaxos-fixed/src/gpaxosproto"
+	"github.com/Bromles/epaxos-fixed/src/state"
 )
 
-const CHAN_BUFFER_SIZE = 200000
-const TRUE = uint8(1)
-const FALSE = uint8(0)
-const CMDS_PER_BALLOT = 40
+const (
+	CHAN_BUFFER_SIZE = 200000
+	TRUE             = uint8(1)
+	FALSE            = uint8(0)
+	CMDS_PER_BALLOT  = 40
+)
 
 const ALL_TO_ALL = true
 
@@ -44,7 +47,7 @@ type Replica struct {
 	fastRound      bool  // is this a fast round?
 	shutdown       bool
 	execedUpTo     int32 // balnum up to which all commands have been executed (including iteslf)
-	//conflicts []map[state.Key]int32
+	// conflicts []map[state.Key]int32
 	Shutdown bool
 }
 
@@ -75,7 +78,8 @@ type LeaderBookkeeping struct {
 }
 
 func NewReplica(id int, peerAddrList []string, IsLeader bool, thrifty bool, exec bool, lread bool, dreply bool, failures int) *Replica {
-	r := &Replica{genericsmr.NewReplica(id, peerAddrList, thrifty, exec, lread, dreply,failures),
+	r := &Replica{
+		genericsmr.NewReplica(id, peerAddrList, thrifty, exec, lread, dreply, failures),
 		make(chan *gpaxosproto.Prepare, CHAN_BUFFER_SIZE),
 		make(chan *gpaxosproto.M_1a, CHAN_BUFFER_SIZE),
 		make(chan *gpaxosproto.M_1b, CHAN_BUFFER_SIZE),
@@ -94,7 +98,8 @@ func NewReplica(id int, peerAddrList []string, IsLeader bool, thrifty bool, exec
 		false,
 		false,
 		0,
-		false}
+		false,
+	}
 
 	r.fastQSize = 3 * r.N / 4
 	if r.fastQSize*4 < 3*r.N {
@@ -151,7 +156,7 @@ func (r *Replica) handleReplicaConnection(rid int, reader *bufio.Reader) error {
 				break
 			}
 
-			//HACK
+			// HACK
 			for _, cid := range msg.Cstruct {
 				cmd := new(state.Command)
 				cmd.Unmarshal(reader)
@@ -180,7 +185,7 @@ func (r *Replica) handleReplicaConnection(rid int, reader *bufio.Reader) error {
 			if err = msg.Unmarshal(reader); err != nil {
 				break
 			}
-			//HACK
+			// HACK
 			for _, cid := range msg.Cids {
 				cmd := new(state.Command)
 				cmd.Unmarshal(reader)
@@ -276,7 +281,6 @@ func (r *Replica) clock() {
 /* Main event processing loop */
 
 func (r *Replica) run() {
-
 	r.ConnectToPeersNoListeners()
 
 	for rid, peerReader := range r.PeerReaders {
@@ -310,13 +314,11 @@ func (r *Replica) run() {
 	}
 
 	for !r.Shutdown {
-
 		if r.crtBalnum >= 0 && len(r.ballotArray[r.crtBalnum].cstruct) >= CMDS_PER_BALLOT {
-
 			select {
 
 			case prepare := <-r.prepareChan:
-				//got a Prepare message
+				// got a Prepare message
 				dlog.Printf("Received Prepare for balnum %d\n", prepare.Balnum)
 				r.commandsMutex.Lock()
 				r.handlePrepare(prepare)
@@ -352,12 +354,12 @@ func (r *Replica) run() {
 				break
 
 			case <-clockChan:
-				//way out of deadlock
+				// way out of deadlock
 
 				select {
 
 				case propose := <-r.ProposeChan:
-					//got a Propose from a client
+					// got a Propose from a client
 					dlog.Printf("Proposal with id %d @ replica %d\n", propose.CommandId, r.Id)
 					r.commandsMutex.Lock()
 					r.handlePropose(propose)
@@ -368,13 +370,11 @@ func (r *Replica) run() {
 					break
 				}
 			}
-
 		} else {
-
 			select {
 
 			case prepare := <-r.prepareChan:
-				//got a Prepare message
+				// got a Prepare message
 				dlog.Printf("Received Prepare for balnum %d\n", prepare.Balnum)
 				r.commandsMutex.Lock()
 				r.handlePrepare(prepare)
@@ -410,7 +410,7 @@ func (r *Replica) run() {
 				break
 
 			case propose := <-r.ProposeChan:
-				//got a Propose from a client
+				// got a Propose from a client
 				dlog.Printf("Proposal with id %d @ replica %d\n", propose.CommandId, r.Id)
 				r.commandsMutex.Lock()
 				r.handlePropose(propose)
@@ -438,7 +438,7 @@ func (r *Replica) bcastPrepare(replica int32, instance int32, ballot int32) {
 	args := &gpaxosproto.Prepare{r.Id, instance, ballot}
 
 	n := r.N - 1
-	//TODO: fix quorum size
+	// TODO: fix quorum size
 	if r.Thrifty {
 		n = r.N >> 1
 	}
@@ -560,7 +560,7 @@ func (r *Replica) bcastCommit(cstruct []int32) {
 }
 
 func (r *Replica) handlePropose(propose *genericsmr.Propose) {
-	//TODO!! Handle client retries
+	// TODO!! Handle client retries
 
 	/*    if _, duplicate := r.commands[propose.CommandId]; duplicate {
 	      log.Println("Duplicate command from client")
@@ -657,7 +657,7 @@ func (r *Replica) handle1b(msg *gpaxosproto.M_1b) {
 	crtbal := r.ballotArray[r.crtBalnum]
 
 	if crtbal.status != PHASE1 {
-		//delayed 1b
+		// delayed 1b
 		return
 	}
 
@@ -665,7 +665,7 @@ func (r *Replica) handle1b(msg *gpaxosproto.M_1b) {
 	crtbal.lb.cstructs = append(crtbal.lb.cstructs, msg.Cstruct)
 	count := len(crtbal.lb.cstructs)
 
-	//is it sufficient to have the same initial quorum size for both fast and slow rounds?
+	// is it sufficient to have the same initial quorum size for both fast and slow rounds?
 	if (r.fastRound && count == r.fastQSize) ||
 		(!r.fastRound && count == r.N/2+1) {
 		_, _, crtbal.cstruct = r.learn(true)
@@ -781,7 +781,7 @@ func (r *Replica) tryToLearn() {
 }
 
 func (r *Replica) startHigherBallot() {
-	//TODO: can Phase 1 be bypassed in this situation, as an optimization?
+	// TODO: can Phase 1 be bypassed in this situation, as an optimization?
 	r.crtBalnum++
 	r.fastRound = true
 	r.ballotArray[r.crtBalnum] = &Ballot{nil, 0, PHASE1, false, &LeaderBookkeeping{cstructs: make([][]int32, 0)}}
@@ -909,7 +909,7 @@ func (r *Replica) learn(getLub bool) (conflict bool, glb []int32, lub []int32) {
 func (r *Replica) dfs(cid int32, n *node, glb []int32, lub []int32, idToNode map[int32]*node) (bool, []int32, []int32) {
 	conf := false
 	n.color = GRAY
-	for id, _ := range n.outEdges {
+	for id := range n.outEdges {
 		m := idToNode[id]
 		if m.color == BLACK {
 			continue

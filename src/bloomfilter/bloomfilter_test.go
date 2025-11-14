@@ -20,7 +20,7 @@ func TestFPRate(t *testing.T) {
 		}
 	}
 
-	t.Logf("Expected FP rate: %f\n", math.Pow((1-math.Exp(-4.0/(float64(bf.m)/float64(n)))), 4.0))
+	t.Logf("Expected FP rate: %f\n", math.Pow(1-math.Exp(-4.0/(float64(bf.m)/float64(n))), 4.0))
 	t.Logf("Actual FP rate: %f\n", float64(fp)/float64(10*n))
 }
 

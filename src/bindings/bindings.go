@@ -6,24 +6,27 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"genericsmrproto"
 	"io"
 	"log"
-	"masterproto"
 	"math"
 	"net"
 	"net/http"
 	"net/rpc"
 	"os/exec"
-	"state"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/Bromles/epaxos-fixed/src/genericsmrproto"
+	"github.com/Bromles/epaxos-fixed/src/masterproto"
+	"github.com/Bromles/epaxos-fixed/src/state"
 )
 
-const TRUE = uint8(1)
-const TIMEOUT = 3 * time.Second
-const MAX_ATTEMPTS = 3
+const (
+	TRUE         = uint8(1)
+	TIMEOUT      = 3 * time.Second
+	MAX_ATTEMPTS = 3
+)
 
 type Parameters struct {
 	masterAddr     string
@@ -59,7 +62,8 @@ func NewParameters(masterAddr string, masterPort int, verbose bool, leaderless b
 		nil,
 		nil,
 		0,
-		10}
+		10,
+	}
 }
 
 func (b *Parameters) Connect() error {
@@ -164,7 +168,7 @@ func Dial(addr string, connect bool) net.Conn {
 			// if not done yet, try again
 			log.Println("Connection error with ", addr, ": ", err)
 			if conn != nil {
-			   conn.Close()
+				conn.Close()
 			}
 		}
 	}
@@ -301,7 +305,6 @@ func (b *Parameters) Stats() string {
 // internals
 
 func (b *Parameters) execute(args genericsmrproto.Propose) []byte {
-
 	if b.isFast {
 		log.Fatal("NYI")
 	}
@@ -312,7 +315,7 @@ func (b *Parameters) execute(args genericsmrproto.Propose) []byte {
 	for err != nil {
 
 		submitter := b.Leader
-		if b.leaderless  {
+		if b.leaderless {
 			submitter = b.closestReplica
 		}
 
@@ -321,7 +324,7 @@ func (b *Parameters) execute(args genericsmrproto.Propose) []byte {
 			args.Marshal(b.writers[submitter])
 			b.writers[submitter].Flush()
 		} else {
-			//send to everyone
+			// send to everyone
 			for rep := 0; rep < b.n; rep++ {
 				b.writers[rep].WriteByte(genericsmrproto.PROPOSE)
 				args.Marshal(b.writers[rep])
@@ -334,7 +337,6 @@ func (b *Parameters) execute(args genericsmrproto.Propose) []byte {
 		}
 
 		value, err = b.waitReplies(submitter)
-
 		if err != nil {
 
 			log.Println("Error: ", err)

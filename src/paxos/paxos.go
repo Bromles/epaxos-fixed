@@ -1,25 +1,30 @@
 package paxos
 
 import (
-	"dlog"
 	"encoding/binary"
-	"fastrpc"
-	"genericsmr"
-	"genericsmrproto"
 	"io"
 	"log"
 	"math"
-	"paxosproto"
-	"state"
 	"time"
+
+	"github.com/Bromles/epaxos-fixed/src/dlog"
+	"github.com/Bromles/epaxos-fixed/src/fastrpc"
+	"github.com/Bromles/epaxos-fixed/src/genericsmr"
+	"github.com/Bromles/epaxos-fixed/src/genericsmrproto"
+	"github.com/Bromles/epaxos-fixed/src/paxosproto"
+	"github.com/Bromles/epaxos-fixed/src/state"
 )
 
-const CHAN_BUFFER_SIZE = 200000
-const TRUE = uint8(1)
-const FALSE = uint8(0)
+const (
+	CHAN_BUFFER_SIZE = 200000
+	TRUE             = uint8(1)
+	FALSE            = uint8(0)
+)
 
-const COMMIT_GRACE_PERIOD = 10 * 1e9 // 10 second(s)
-const SLEEP_TIME_NS = 1e6
+const (
+	COMMIT_GRACE_PERIOD = 10 * 1e9 // 10 second(s)
+	SLEEP_TIME_NS       = 1e6
+)
 
 type Replica struct {
 	*genericsmr.Replica   // extends a generic Paxos replica
@@ -77,7 +82,8 @@ type LeaderBookkeeping struct {
 }
 
 func NewReplica(id int, peerAddrList []string, Isleader bool, thrifty bool, exec bool, lread bool, dreply bool, durable bool, batchWait int, f int) *Replica {
-	r := &Replica{genericsmr.NewReplica(id, peerAddrList, thrifty, exec, lread, dreply, f),
+	r := &Replica{
+		genericsmr.NewReplica(id, peerAddrList, thrifty, exec, lread, dreply, f),
 		make(chan fastrpc.Serializable, genericsmr.CHAN_BUFFER_SIZE),
 		make(chan fastrpc.Serializable, genericsmr.CHAN_BUFFER_SIZE),
 		make(chan fastrpc.Serializable, genericsmr.CHAN_BUFFER_SIZE),
@@ -96,7 +102,8 @@ func NewReplica(id int, peerAddrList []string, Isleader bool, thrifty bool, exec
 		0,
 		true,
 		-1,
-		batchWait}
+		batchWait,
+	}
 
 	r.Durable = durable
 
@@ -120,7 +127,7 @@ func NewReplica(id int, peerAddrList []string, Isleader bool, thrifty bool, exec
 	return r
 }
 
-//append a log entry to stable storage
+// append a log entry to stable storage
 func (r *Replica) recordInstanceMetadata(inst *Instance) {
 	if !r.Durable {
 		return
@@ -132,7 +139,7 @@ func (r *Replica) recordInstanceMetadata(inst *Instance) {
 	r.StableStore.Write(b[:])
 }
 
-//write a sequence of commands to stable storage
+// write a sequence of commands to stable storage
 func (r *Replica) recordCommands(cmds []state.Command) {
 	if !r.Durable {
 		return
@@ -146,7 +153,7 @@ func (r *Replica) recordCommands(cmds []state.Command) {
 	}
 }
 
-//sync with the stable store
+// sync with the stable store
 func (r *Replica) sync() {
 	if !r.Durable {
 		return
@@ -191,7 +198,6 @@ func (r *Replica) BatchingEnabled() bool {
 /* Main event processing loop */
 
 func (r *Replica) run() {
-
 	r.ConnectToPeers()
 
 	r.ComputeClosestPeers()
@@ -202,7 +208,7 @@ func (r *Replica) run() {
 
 	fastClockChan = make(chan bool, 1)
 
-	//Enabled fast clock when batching
+	// Enabled fast clock when batching
 	if r.BatchingEnabled() {
 		go r.fastClock()
 	}
@@ -212,62 +218,61 @@ func (r *Replica) run() {
 	go r.WaitForClientConnections()
 
 	for !r.Shutdown {
-
 		select {
 
 		case propose := <-onOffProposeChan:
-			//got a Propose from a client
+			// got a Propose from a client
 			r.handlePropose(propose)
-			//deactivate new proposals channel to prioritize the handling of other protocol messages,
-			//and to allow commands to accumulate for batching
+			// deactivate new proposals channel to prioritize the handling of other protocol messages,
+			// and to allow commands to accumulate for batching
 			if r.BatchingEnabled() {
 				onOffProposeChan = nil
 			}
 			break
 
 		case <-fastClockChan:
-			//activate new proposals channel
+			// activate new proposals channel
 			onOffProposeChan = r.ProposeChan
 			break
 
 		case prepareS := <-r.prepareChan:
 			prepare := prepareS.(*paxosproto.Prepare)
-			//got a Prepare message
+			// got a Prepare message
 			dlog.Printf("Received Prepare from replica %d, for instance %d\n", prepare.LeaderId, prepare.Instance)
 			r.handlePrepare(prepare)
 			break
 
 		case acceptS := <-r.acceptChan:
 			accept := acceptS.(*paxosproto.Accept)
-			//got an Accept message
+			// got an Accept message
 			dlog.Printf("Received Accept from replica %d, for instance %d\n", accept.LeaderId, accept.Instance)
 			r.handleAccept(accept)
 			break
 
 		case commitS := <-r.commitChan:
 			commit := commitS.(*paxosproto.Commit)
-			//got a Commit message
+			// got a Commit message
 			dlog.Printf("Received Commit from replica %d, for instance %d\n", commit.LeaderId, commit.Instance)
 			r.handleCommit(commit)
 			break
 
 		case commitS := <-r.commitShortChan:
 			commit := commitS.(*paxosproto.CommitShort)
-			//got a Commit message
+			// got a Commit message
 			dlog.Printf("Received short Commit from replica %d, for instance %d\n", commit.LeaderId, commit.Instance)
 			r.handleCommitShort(commit)
 			break
 
 		case prepareReplyS := <-r.prepareReplyChan:
 			prepareReply := prepareReplyS.(*paxosproto.PrepareReply)
-			//got a Prepare reply
+			// got a Prepare reply
 			dlog.Printf("Received PrepareReply for instance %d\n", prepareReply.Instance)
 			r.handlePrepareReply(prepareReply)
 			break
 
 		case acceptReplyS := <-r.acceptReplyChan:
 			acceptReply := acceptReplyS.(*paxosproto.AcceptReply)
-			//got an Accept reply
+			// got an Accept reply
 			dlog.Printf("Received AcceptReply for instance %d\n", acceptReply.Instance)
 			r.handleAcceptReply(acceptReply)
 			break
@@ -276,7 +281,6 @@ func (r *Replica) run() {
 			r.recover(iid)
 			break
 		}
-
 	}
 }
 
@@ -314,7 +318,6 @@ func (r *Replica) bcastPrepare(instance int32) {
 			break
 		}
 	}
-
 }
 
 var pa paxosproto.Accept
@@ -344,11 +347,12 @@ func (r *Replica) bcastAccept(instance int32) {
 			break
 		}
 	}
-
 }
 
-var pc paxosproto.Commit
-var pcs paxosproto.CommitShort
+var (
+	pc  paxosproto.Commit
+	pcs paxosproto.CommitShort
+)
 
 func (r *Replica) bcastCommit(instance int32, ballot int32, command []state.Command) {
 	defer func() {
@@ -375,7 +379,6 @@ func (r *Replica) bcastCommit(instance int32, ballot int32, command []state.Comm
 		r.SendMsg(r.PreferredPeerOrder[q], r.commitShortRPC, argsShort)
 		sent++
 	}
-
 }
 
 func (r *Replica) handlePropose(propose *genericsmr.Propose) {
@@ -404,7 +407,8 @@ func (r *Replica) handlePropose(propose *genericsmr.Propose) {
 		r.defaultBallot[r.Id],
 		r.defaultBallot[r.Id],
 		PREPARING,
-		&LeaderBookkeeping{proposals, 0, 0, 0, r.Id, nil, -1}}
+		&LeaderBookkeeping{proposals, 0, 0, 0, r.Id, nil, -1},
+	}
 	r.makeBallot(r.crtInstance)
 
 	inst := r.instanceSpace[r.crtInstance]
@@ -423,11 +427,9 @@ func (r *Replica) handlePropose(propose *genericsmr.Propose) {
 		inst.status = ACCEPTED
 		r.bcastAccept(r.crtInstance)
 	}
-
 }
 
 func (r *Replica) handlePrepare(prepare *paxosproto.Prepare) {
-
 	if prepare.Ballot > r.maxRecvBallot {
 		r.maxRecvBallot = prepare.Ballot
 	}
@@ -442,7 +444,8 @@ func (r *Replica) handlePrepare(prepare *paxosproto.Prepare) {
 			r.defaultBallot[r.Id],
 			r.defaultBallot[r.Id],
 			PREPARING,
-			nil}
+			nil,
+		}
 		inst = r.instanceSpace[prepare.Instance]
 	}
 
@@ -474,7 +477,6 @@ func (r *Replica) handlePrepare(prepare *paxosproto.Prepare) {
 
 	preply := &paxosproto.PrepareReply{prepare.Instance, inst.bal, inst.vbal, r.defaultBallot[r.Id], r.Id, inst.cmds}
 	r.replyPrepare(prepare.LeaderId, preply)
-
 }
 
 func (r *Replica) handleAccept(accept *paxosproto.Accept) {
@@ -493,7 +495,8 @@ func (r *Replica) handleAccept(accept *paxosproto.Accept) {
 			accept.Ballot,
 			accept.Ballot,
 			ACCEPTED,
-			nil}
+			nil,
+		}
 		inst = r.instanceSpace[accept.Instance]
 		r.recordInstanceMetadata(r.instanceSpace[accept.Instance])
 		r.recordCommands(accept.Command)
@@ -514,7 +517,6 @@ func (r *Replica) handleAccept(accept *paxosproto.Accept) {
 
 	areply := &paxosproto.AcceptReply{accept.Instance, inst.bal}
 	r.replyAccept(accept.LeaderId, areply)
-
 }
 
 func (r *Replica) handleCommit(commit *paxosproto.Commit) {
@@ -528,7 +530,8 @@ func (r *Replica) handleCommit(commit *paxosproto.Commit) {
 			r.defaultBallot[r.Id],
 			r.defaultBallot[r.Id],
 			PREPARING,
-			nil}
+			nil,
+		}
 		inst = r.instanceSpace[commit.Instance]
 	}
 
@@ -656,7 +659,6 @@ func (r *Replica) handlePrepareReply(preply *paxosproto.PrepareReply) {
 		r.sync()
 		r.bcastAccept(preply.Instance)
 	}
-
 }
 
 func (r *Replica) handleAcceptReply(areply *paxosproto.AcceptReply) {
@@ -696,7 +698,7 @@ func (r *Replica) handleAcceptReply(areply *paxosproto.AcceptReply) {
 		inst = r.instanceSpace[areply.Instance]
 		inst.status = COMMITTED
 		r.recordInstanceMetadata(r.instanceSpace[areply.Instance])
-		r.sync() //is this necessary?
+		r.sync() // is this necessary?
 
 		r.bcastCommit(areply.Instance, inst.bal, inst.cmds)
 		if lb.clientProposals != nil && !r.Dreply {
@@ -706,26 +708,25 @@ func (r *Replica) handleAcceptReply(areply *paxosproto.AcceptReply) {
 					TRUE,
 					lb.clientProposals[i].CommandId,
 					state.NIL(),
-					lb.clientProposals[i].Timestamp}
+					lb.clientProposals[i].Timestamp,
+				}
 				r.ReplyProposeTS(propreply, lb.clientProposals[i].Reply, lb.clientProposals[i].Mutex)
 			}
 		}
 	} else {
 		dlog.Printf("Not enough \n")
 	}
-
 }
 
 func (r *Replica) recover(instance int32) {
-
 	if r.instanceSpace[instance] == nil {
 		r.instanceSpace[instance] = &Instance{
 			nil,
 			r.defaultBallot[r.Id],
 			r.defaultBallot[r.Id],
 			PREPARING,
-			nil}
-
+			nil,
+		}
 	}
 
 	if r.instanceSpace[instance].lb == nil {
@@ -737,7 +738,6 @@ func (r *Replica) recover(instance int32) {
 }
 
 func (r *Replica) executeCommands() {
-
 	timeout := int64(0)
 	problemInstance := int32(0)
 
@@ -756,7 +756,8 @@ func (r *Replica) executeCommands() {
 							TRUE,
 							inst.lb.clientProposals[j].CommandId,
 							val,
-							inst.lb.clientProposals[j].Timestamp}
+							inst.lb.clientProposals[j].Timestamp,
+						}
 						r.ReplyProposeTS(propreply, inst.lb.clientProposals[j].Reply, inst.lb.clientProposals[j].Mutex)
 					} else if inst.cmds[j].Op == state.PUT {
 						inst.cmds[j].Execute(r.State)
@@ -790,5 +791,4 @@ func (r *Replica) executeCommands() {
 			time.Sleep(SLEEP_TIME_NS)
 		}
 	}
-
 }

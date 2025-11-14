@@ -19,7 +19,7 @@ func (bv Bitvec) Clear() {
 }
 
 func (bv Bitvec) GetBit(pos uint32) bool {
-	return ((bv[pos>>6] & (1 << (pos & uint32(63)))) != 0)
+	return (bv[pos>>6] & (1 << (pos & uint32(63)))) != 0
 }
 
 func (bv Bitvec) SetBit(pos uint32) {

@@ -2,25 +2,28 @@ package genericsmr
 
 import (
 	"bufio"
-	"dlog"
 	"encoding/binary"
 	"encoding/json"
-	"fastrpc"
 	"fmt"
-	"genericsmrproto"
 	"io"
 	"log"
 	"math"
 	"net"
 	"os"
-	"state"
 	"sync"
 	"time"
+
+	"github.com/Bromles/epaxos-fixed/src/dlog"
+	"github.com/Bromles/epaxos-fixed/src/fastrpc"
+	"github.com/Bromles/epaxos-fixed/src/genericsmrproto"
+	"github.com/Bromles/epaxos-fixed/src/state"
 )
 
-const CHAN_BUFFER_SIZE = 200000
-const TRUE = uint8(1)
-const FALSE = uint8(0)
+const (
+	CHAN_BUFFER_SIZE = 200000
+	TRUE             = uint8(1)
+	FALSE            = uint8(0)
+)
 
 var storage string
 
@@ -109,12 +112,11 @@ func NewReplica(id int, peerAddrList []string, thrifty bool, exec bool, lread bo
 		make([]float64, len(peerAddrList)),
 		make([]int64, len(peerAddrList)),
 		sync.Mutex{},
-		&genericsmrproto.Stats{make(map[string]int)}}
+		&genericsmrproto.Stats{make(map[string]int)},
+	}
 
 	var err error
-	r.StableStore, err =
-		os.Create(fmt.Sprintf("%v/stable-store-replica%d", storage, r.Id))
-
+	r.StableStore, err = os.Create(fmt.Sprintf("%v/stable-store-replica%d", storage, r.Id))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -141,11 +143,11 @@ func (r *Replica) BeTheLeader(args *genericsmrproto.BeTheLeaderArgs, reply *gene
 /* Utils */
 
 func (r *Replica) FastQuorumSize() int {
-	return r.F + (r.F + 1)/2
+	return r.F + (r.F+1)/2
 }
 
 func (r *Replica) SlowQuorumSize() int {
-	return (r.N + 1)/ 2
+	return (r.N + 1) / 2
 }
 
 // Flexible Paxos
@@ -166,7 +168,7 @@ func (r *Replica) ConnectToPeers() {
 
 	go r.waitForPeerConnections(done)
 
-	//connect to peers
+	// connect to peers
 	for i := 0; i < int(r.Id); i++ {
 		for done := false; !done; {
 			if conn, err := net.Dial("tcp", r.PeerAddrList[i]); err == nil {
@@ -197,7 +199,6 @@ func (r *Replica) ConnectToPeers() {
 		}
 		go r.replicaListener(rid, reader)
 	}
-
 }
 
 func (r *Replica) ConnectToPeersNoListeners() {
@@ -207,7 +208,7 @@ func (r *Replica) ConnectToPeersNoListeners() {
 
 	go r.waitForPeerConnections(done)
 
-	//connect to peers
+	// connect to peers
 	for i := 0; i < int(r.Id); i++ {
 		for done := false; !done; {
 			if conn, err := net.Dial("tcp", r.PeerAddrList[i]); err == nil {
@@ -300,7 +301,7 @@ func (r *Replica) replicaListener(rid int, reader *bufio.Reader) {
 				break
 			}
 			dlog.Println("receive beacon ", gbeaconReply.Timestamp, " reply from ", rid)
-			//TODO: UPDATE STUFF
+			// TODO: UPDATE STUFF
 			r.Mutex.Lock()
 			r.Latencies[rid] += time.Now().UnixNano() - gbeaconReply.Timestamp
 			r.Mutex.Unlock()
@@ -356,7 +357,8 @@ func (r *Replica) clientListener(conn net.Conn) {
 					TRUE,
 					propose.CommandId,
 					val,
-					propose.Timestamp}
+					propose.Timestamp,
+				}
 				r.ReplyProposeTS(propreply, writer, mutex)
 			} else {
 				r.ProposeChan <- &Propose{propose, writer, mutex}
@@ -368,7 +370,7 @@ func (r *Replica) clientListener(conn net.Conn) {
 			if err = read.Unmarshal(reader); err != nil {
 				break
 			}
-			//r.ReadChan <- read
+			// r.ReadChan <- read
 			break
 
 		case genericsmrproto.PROPOSE_AND_READ:
@@ -376,7 +378,7 @@ func (r *Replica) clientListener(conn net.Conn) {
 			if err = pr.Unmarshal(reader); err != nil {
 				break
 			}
-			//r.ProposeAndReadChan <- pr
+			// r.ProposeAndReadChan <- pr
 			break
 
 		case genericsmrproto.STATS:
@@ -391,7 +393,6 @@ func (r *Replica) clientListener(conn net.Conn) {
 	conn.Close()
 
 	log.Println("Client down ", conn.RemoteAddr())
-
 }
 
 func (r *Replica) RegisterRPC(msgObj fastrpc.Serializable, notify chan fastrpc.Serializable) uint8 {
@@ -495,7 +496,6 @@ func (r *Replica) UpdatePreferredPeerOrder(quorum []int32) {
 }
 
 func (r *Replica) ComputeClosestPeers() {
-
 	npings := 20
 
 	for j := 0; j < npings; j++ {
@@ -536,5 +536,4 @@ func (r *Replica) ComputeClosestPeers() {
 		lat := float64(r.Latencies[node]) / float64(npings*1000000)
 		log.Println(node, " -> ", lat, "ms")
 	}
-
 }

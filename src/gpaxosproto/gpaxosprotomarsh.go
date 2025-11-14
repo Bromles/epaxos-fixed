@@ -40,11 +40,13 @@ func (p *M_1aCache) Get() *M_1a {
 	}
 	return t
 }
+
 func (p *M_1aCache) Put(t *M_1a) {
 	p.mu.Lock()
 	p.cache = append(p.cache, t)
 	p.mu.Unlock()
 }
+
 func (t *M_1a) Marshal(wire io.Writer) {
 	var b [9]byte
 	var bs []byte
@@ -70,8 +72,8 @@ func (t *M_1a) Unmarshal(wire io.Reader) error {
 	if _, err := io.ReadAtLeast(wire, bs, 9); err != nil {
 		return err
 	}
-	t.LeaderId = int32((uint32(bs[0]) | (uint32(bs[1]) << 8) | (uint32(bs[2]) << 16) | (uint32(bs[3]) << 24)))
-	t.Balnum = int32((uint32(bs[4]) | (uint32(bs[5]) << 8) | (uint32(bs[6]) << 16) | (uint32(bs[7]) << 24)))
+	t.LeaderId = int32(uint32(bs[0]) | (uint32(bs[1]) << 8) | (uint32(bs[2]) << 16) | (uint32(bs[3]) << 24))
+	t.Balnum = int32(uint32(bs[4]) | (uint32(bs[5]) << 8) | (uint32(bs[6]) << 16) | (uint32(bs[7]) << 24))
 	t.Fast = uint8(bs[8])
 	return nil
 }
@@ -104,11 +106,13 @@ func (p *M_1bCache) Get() *M_1b {
 	}
 	return t
 }
+
 func (p *M_1bCache) Put(t *M_1b) {
 	p.mu.Lock()
 	p.cache = append(p.cache, t)
 	p.mu.Unlock()
 }
+
 func (t *M_1b) Marshal(wire io.Writer) {
 	var b [10]byte
 	var bs []byte
@@ -152,8 +156,8 @@ func (t *M_1b) Unmarshal(rr io.Reader) error {
 	if _, err := io.ReadAtLeast(wire, bs, 8); err != nil {
 		return err
 	}
-	t.ReplicaId = int32((uint32(bs[0]) | (uint32(bs[1]) << 8) | (uint32(bs[2]) << 16) | (uint32(bs[3]) << 24)))
-	t.Balnum = int32((uint32(bs[4]) | (uint32(bs[5]) << 8) | (uint32(bs[6]) << 16) | (uint32(bs[7]) << 24)))
+	t.ReplicaId = int32(uint32(bs[0]) | (uint32(bs[1]) << 8) | (uint32(bs[2]) << 16) | (uint32(bs[3]) << 24))
+	t.Balnum = int32(uint32(bs[4]) | (uint32(bs[5]) << 8) | (uint32(bs[6]) << 16) | (uint32(bs[7]) << 24))
 	alen1, err := binary.ReadVarint(wire)
 	if err != nil {
 		return err
@@ -164,7 +168,7 @@ func (t *M_1b) Unmarshal(rr io.Reader) error {
 		if _, err := io.ReadAtLeast(wire, bs, 4); err != nil {
 			return err
 		}
-		t.Cstruct[i] = int32((uint32(bs[0]) | (uint32(bs[1]) << 8) | (uint32(bs[2]) << 16) | (uint32(bs[3]) << 24)))
+		t.Cstruct[i] = int32(uint32(bs[0]) | (uint32(bs[1]) << 8) | (uint32(bs[2]) << 16) | (uint32(bs[3]) << 24))
 	}
 	return nil
 }
@@ -197,11 +201,13 @@ func (p *PrepareCache) Get() *Prepare {
 	}
 	return t
 }
+
 func (p *PrepareCache) Put(t *Prepare) {
 	p.mu.Lock()
 	p.cache = append(p.cache, t)
 	p.mu.Unlock()
 }
+
 func (t *Prepare) Marshal(wire io.Writer) {
 	var b [12]byte
 	var bs []byte
@@ -231,9 +237,9 @@ func (t *Prepare) Unmarshal(wire io.Reader) error {
 	if _, err := io.ReadAtLeast(wire, bs, 12); err != nil {
 		return err
 	}
-	t.LeaderId = int32((uint32(bs[0]) | (uint32(bs[1]) << 8) | (uint32(bs[2]) << 16) | (uint32(bs[3]) << 24)))
-	t.Balnum = int32((uint32(bs[4]) | (uint32(bs[5]) << 8) | (uint32(bs[6]) << 16) | (uint32(bs[7]) << 24)))
-	t.Ballot = int32((uint32(bs[8]) | (uint32(bs[9]) << 8) | (uint32(bs[10]) << 16) | (uint32(bs[11]) << 24)))
+	t.LeaderId = int32(uint32(bs[0]) | (uint32(bs[1]) << 8) | (uint32(bs[2]) << 16) | (uint32(bs[3]) << 24))
+	t.Balnum = int32(uint32(bs[4]) | (uint32(bs[5]) << 8) | (uint32(bs[6]) << 16) | (uint32(bs[7]) << 24))
+	t.Ballot = int32(uint32(bs[8]) | (uint32(bs[9]) << 8) | (uint32(bs[10]) << 16) | (uint32(bs[11]) << 24))
 	return nil
 }
 
@@ -265,11 +271,13 @@ func (p *M_2aCache) Get() *M_2a {
 	}
 	return t
 }
+
 func (p *M_2aCache) Put(t *M_2a) {
 	p.mu.Lock()
 	p.cache = append(p.cache, t)
 	p.mu.Unlock()
 }
+
 func (t *M_2a) Marshal(wire io.Writer) {
 	var b [10]byte
 	var bs []byte
@@ -313,8 +321,8 @@ func (t *M_2a) Unmarshal(rr io.Reader) error {
 	if _, err := io.ReadAtLeast(wire, bs, 8); err != nil {
 		return err
 	}
-	t.LeaderId = int32((uint32(bs[0]) | (uint32(bs[1]) << 8) | (uint32(bs[2]) << 16) | (uint32(bs[3]) << 24)))
-	t.Balnum = int32((uint32(bs[4]) | (uint32(bs[5]) << 8) | (uint32(bs[6]) << 16) | (uint32(bs[7]) << 24)))
+	t.LeaderId = int32(uint32(bs[0]) | (uint32(bs[1]) << 8) | (uint32(bs[2]) << 16) | (uint32(bs[3]) << 24))
+	t.Balnum = int32(uint32(bs[4]) | (uint32(bs[5]) << 8) | (uint32(bs[6]) << 16) | (uint32(bs[7]) << 24))
 	alen1, err := binary.ReadVarint(wire)
 	if err != nil {
 		return err
@@ -325,7 +333,7 @@ func (t *M_2a) Unmarshal(rr io.Reader) error {
 		if _, err := io.ReadAtLeast(wire, bs, 4); err != nil {
 			return err
 		}
-		t.Cstruct[i] = int32((uint32(bs[0]) | (uint32(bs[1]) << 8) | (uint32(bs[2]) << 16) | (uint32(bs[3]) << 24)))
+		t.Cstruct[i] = int32(uint32(bs[0]) | (uint32(bs[1]) << 8) | (uint32(bs[2]) << 16) | (uint32(bs[3]) << 24))
 	}
 	return nil
 }
@@ -358,11 +366,13 @@ func (p *M_2bCache) Get() *M_2b {
 	}
 	return t
 }
+
 func (p *M_2bCache) Put(t *M_2b) {
 	p.mu.Lock()
 	p.cache = append(p.cache, t)
 	p.mu.Unlock()
 }
+
 func (t *M_2b) Marshal(wire io.Writer) {
 	var b [10]byte
 	var bs []byte
@@ -420,8 +430,8 @@ func (t *M_2b) Unmarshal(rr io.Reader) error {
 	if _, err := io.ReadAtLeast(wire, bs, 8); err != nil {
 		return err
 	}
-	t.ReplicaId = int32((uint32(bs[0]) | (uint32(bs[1]) << 8) | (uint32(bs[2]) << 16) | (uint32(bs[3]) << 24)))
-	t.Balnum = int32((uint32(bs[4]) | (uint32(bs[5]) << 8) | (uint32(bs[6]) << 16) | (uint32(bs[7]) << 24)))
+	t.ReplicaId = int32(uint32(bs[0]) | (uint32(bs[1]) << 8) | (uint32(bs[2]) << 16) | (uint32(bs[3]) << 24))
+	t.Balnum = int32(uint32(bs[4]) | (uint32(bs[5]) << 8) | (uint32(bs[6]) << 16) | (uint32(bs[7]) << 24))
 	alen1, err := binary.ReadVarint(wire)
 	if err != nil {
 		return err
@@ -432,7 +442,7 @@ func (t *M_2b) Unmarshal(rr io.Reader) error {
 		if _, err := io.ReadAtLeast(wire, bs, 4); err != nil {
 			return err
 		}
-		t.Cstruct[i] = int32((uint32(bs[0]) | (uint32(bs[1]) << 8) | (uint32(bs[2]) << 16) | (uint32(bs[3]) << 24)))
+		t.Cstruct[i] = int32(uint32(bs[0]) | (uint32(bs[1]) << 8) | (uint32(bs[2]) << 16) | (uint32(bs[3]) << 24))
 	}
 	alen2, err := binary.ReadVarint(wire)
 	if err != nil {
@@ -443,7 +453,7 @@ func (t *M_2b) Unmarshal(rr io.Reader) error {
 		if _, err := io.ReadAtLeast(wire, bs, 4); err != nil {
 			return err
 		}
-		t.Cids[i] = int32((uint32(bs[0]) | (uint32(bs[1]) << 8) | (uint32(bs[2]) << 16) | (uint32(bs[3]) << 24)))
+		t.Cids[i] = int32(uint32(bs[0]) | (uint32(bs[1]) << 8) | (uint32(bs[2]) << 16) | (uint32(bs[3]) << 24))
 	}
 	return nil
 }
@@ -476,11 +486,13 @@ func (p *CommitCache) Get() *Commit {
 	}
 	return t
 }
+
 func (p *CommitCache) Put(t *Commit) {
 	p.mu.Lock()
 	p.cache = append(p.cache, t)
 	p.mu.Unlock()
 }
+
 func (t *Commit) Marshal(wire io.Writer) {
 	var b [10]byte
 	var bs []byte
@@ -518,7 +530,7 @@ func (t *Commit) Unmarshal(rr io.Reader) error {
 		if _, err := io.ReadAtLeast(wire, bs, 4); err != nil {
 			return err
 		}
-		t.Cstruct[i] = int32((uint32(bs[0]) | (uint32(bs[1]) << 8) | (uint32(bs[2]) << 16) | (uint32(bs[3]) << 24)))
+		t.Cstruct[i] = int32(uint32(bs[0]) | (uint32(bs[1]) << 8) | (uint32(bs[2]) << 16) | (uint32(bs[3]) << 24))
 	}
 	return nil
 }
@@ -551,11 +563,13 @@ func (p *PrepareReplyCache) Get() *PrepareReply {
 	}
 	return t
 }
+
 func (p *PrepareReplyCache) Put(t *PrepareReply) {
 	p.mu.Lock()
 	p.cache = append(p.cache, t)
 	p.mu.Unlock()
 }
+
 func (t *PrepareReply) Marshal(wire io.Writer) {
 	var b [10]byte
 	var bs []byte
@@ -600,9 +614,9 @@ func (t *PrepareReply) Unmarshal(rr io.Reader) error {
 	if _, err := io.ReadAtLeast(wire, bs, 9); err != nil {
 		return err
 	}
-	t.Balnum = int32((uint32(bs[0]) | (uint32(bs[1]) << 8) | (uint32(bs[2]) << 16) | (uint32(bs[3]) << 24)))
+	t.Balnum = int32(uint32(bs[0]) | (uint32(bs[1]) << 8) | (uint32(bs[2]) << 16) | (uint32(bs[3]) << 24))
 	t.OK = uint8(bs[4])
-	t.Ballot = int32((uint32(bs[5]) | (uint32(bs[6]) << 8) | (uint32(bs[7]) << 16) | (uint32(bs[8]) << 24)))
+	t.Ballot = int32(uint32(bs[5]) | (uint32(bs[6]) << 8) | (uint32(bs[7]) << 16) | (uint32(bs[8]) << 24))
 	alen1, err := binary.ReadVarint(wire)
 	if err != nil {
 		return err
@@ -613,7 +627,7 @@ func (t *PrepareReply) Unmarshal(rr io.Reader) error {
 		if _, err := io.ReadAtLeast(wire, bs, 4); err != nil {
 			return err
 		}
-		t.Cstruct[i] = int32((uint32(bs[0]) | (uint32(bs[1]) << 8) | (uint32(bs[2]) << 16) | (uint32(bs[3]) << 24)))
+		t.Cstruct[i] = int32(uint32(bs[0]) | (uint32(bs[1]) << 8) | (uint32(bs[2]) << 16) | (uint32(bs[3]) << 24))
 	}
 	return nil
 }

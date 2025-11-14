@@ -12,15 +12,13 @@ type RegisterReply struct {
 	IsLeader  bool
 }
 
-type GetLeaderArgs struct {
-}
+type GetLeaderArgs struct{}
 
 type GetLeaderReply struct {
 	LeaderId int
 }
 
-type GetReplicaListArgs struct {
-}
+type GetReplicaListArgs struct{}
 
 type GetReplicaListReply struct {
 	ReplicaList []string

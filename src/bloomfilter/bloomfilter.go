@@ -1,8 +1,9 @@
 package bloomfilter
 
 import (
-	"bitvec"
 	"math"
+
+	"github.com/Bromles/epaxos-fixed/src/bitvec"
 )
 
 const (
@@ -11,13 +12,13 @@ const (
 
 func hash64(s uint64) uint64 {
 	var mul uint64 = k2 + 8
-	var u uint64 = (4 + (s << 3))
+	u := 4 + (s << 3)
 
 	// Murmur-inspired hashing.
-	var a uint64 = (u ^ s) * mul
-	a ^= (a >> 47)
+	a := (u ^ s) * mul
+	a ^= a >> 47
 	b := (s ^ a) * mul
-	b ^= (b >> 47)
+	b ^= b >> 47
 	b *= mul
 	return b
 }
@@ -31,9 +32,9 @@ func CityHash64(s uint64) uint64 {
 	// Murmur-inspired hashing.
 
 	a = (u ^ v) * mul
-	a ^= (a >> 47)
+	a ^= a >> 47
 	b := (v ^ a) * mul
-	b ^= (b >> 47)
+	b ^= b >> 47
 	b *= mul
 	return b
 }

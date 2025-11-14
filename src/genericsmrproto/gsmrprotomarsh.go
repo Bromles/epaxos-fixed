@@ -33,11 +33,13 @@ func (p *ProposeCache) Get() *Propose {
 	}
 	return t
 }
+
 func (p *ProposeCache) Put(t *Propose) {
 	p.mu.Lock()
 	p.cache = append(p.cache, t)
 	p.mu.Unlock()
 }
+
 func (t *Propose) Marshal(wire io.Writer) {
 	var b [8]byte
 	var bs []byte
@@ -69,13 +71,13 @@ func (t *Propose) Unmarshal(wire io.Reader) error {
 	if _, err := io.ReadAtLeast(wire, bs, 4); err != nil {
 		return err
 	}
-	t.CommandId = int32((uint32(bs[0]) | (uint32(bs[1]) << 8) | (uint32(bs[2]) << 16) | (uint32(bs[3]) << 24)))
+	t.CommandId = int32(uint32(bs[0]) | (uint32(bs[1]) << 8) | (uint32(bs[2]) << 16) | (uint32(bs[3]) << 24))
 	t.Command.Unmarshal(wire)
 	bs = b[:8]
 	if _, err := io.ReadAtLeast(wire, bs, 8); err != nil {
 		return err
 	}
-	t.Timestamp = int64((uint64(bs[0]) | (uint64(bs[1]) << 8) | (uint64(bs[2]) << 16) | (uint64(bs[3]) << 24) | (uint64(bs[4]) << 32) | (uint64(bs[5]) << 40) | (uint64(bs[6]) << 48) | (uint64(bs[7]) << 56)))
+	t.Timestamp = int64(uint64(bs[0]) | (uint64(bs[1]) << 8) | (uint64(bs[2]) << 16) | (uint64(bs[3]) << 24) | (uint64(bs[4]) << 32) | (uint64(bs[5]) << 40) | (uint64(bs[6]) << 48) | (uint64(bs[7]) << 56))
 	return nil
 }
 
@@ -107,11 +109,13 @@ func (p *BeaconReplyCache) Get() *BeaconReply {
 	}
 	return t
 }
+
 func (p *BeaconReplyCache) Put(t *BeaconReply) {
 	p.mu.Lock()
 	p.cache = append(p.cache, t)
 	p.mu.Unlock()
 }
+
 func (t *BeaconReply) Marshal(wire io.Writer) {
 	var b [8]byte
 	var bs []byte
@@ -167,11 +171,13 @@ func (p *PingArgsCache) Get() *PingArgs {
 	}
 	return t
 }
+
 func (p *PingArgsCache) Put(t *PingArgs) {
 	p.mu.Lock()
 	p.cache = append(p.cache, t)
 	p.mu.Unlock()
 }
+
 func (t *PingArgs) Marshal(wire io.Writer) {
 	var b [1]byte
 	var bs []byte
@@ -219,11 +225,13 @@ func (p *BeTheLeaderArgsCache) Get() *BeTheLeaderArgs {
 	}
 	return t
 }
+
 func (p *BeTheLeaderArgsCache) Put(t *BeTheLeaderArgs) {
 	p.mu.Lock()
 	p.cache = append(p.cache, t)
 	p.mu.Unlock()
 }
+
 func (t *BeTheLeaderArgs) Marshal(wire io.Writer) {
 }
 
@@ -259,11 +267,13 @@ func (p *ProposeAndReadCache) Get() *ProposeAndRead {
 	}
 	return t
 }
+
 func (p *ProposeAndReadCache) Put(t *ProposeAndRead) {
 	p.mu.Lock()
 	p.cache = append(p.cache, t)
 	p.mu.Unlock()
 }
+
 func (t *ProposeAndRead) Marshal(wire io.Writer) {
 	var b [4]byte
 	var bs []byte
@@ -285,7 +295,7 @@ func (t *ProposeAndRead) Unmarshal(wire io.Reader) error {
 	if _, err := io.ReadAtLeast(wire, bs, 4); err != nil {
 		return err
 	}
-	t.CommandId = int32((uint32(bs[0]) | (uint32(bs[1]) << 8) | (uint32(bs[2]) << 16) | (uint32(bs[3]) << 24)))
+	t.CommandId = int32(uint32(bs[0]) | (uint32(bs[1]) << 8) | (uint32(bs[2]) << 16) | (uint32(bs[3]) << 24))
 	t.Command.Unmarshal(wire)
 	t.Key.Unmarshal(wire)
 	return nil
@@ -319,11 +329,13 @@ func (p *ReadCache) Get() *Read {
 	}
 	return t
 }
+
 func (p *ReadCache) Put(t *Read) {
 	p.mu.Lock()
 	p.cache = append(p.cache, t)
 	p.mu.Unlock()
 }
+
 func (t *Read) Marshal(wire io.Writer) {
 	var b [4]byte
 	var bs []byte
@@ -344,7 +356,7 @@ func (t *Read) Unmarshal(wire io.Reader) error {
 	if _, err := io.ReadAtLeast(wire, bs, 4); err != nil {
 		return err
 	}
-	t.CommandId = int32((uint32(bs[0]) | (uint32(bs[1]) << 8) | (uint32(bs[2]) << 16) | (uint32(bs[3]) << 24)))
+	t.CommandId = int32(uint32(bs[0]) | (uint32(bs[1]) << 8) | (uint32(bs[2]) << 16) | (uint32(bs[3]) << 24))
 	t.Key.Unmarshal(wire)
 	return nil
 }
@@ -377,11 +389,13 @@ func (p *PingReplyCache) Get() *PingReply {
 	}
 	return t
 }
+
 func (p *PingReplyCache) Put(t *PingReply) {
 	p.mu.Lock()
 	p.cache = append(p.cache, t)
 	p.mu.Unlock()
 }
+
 func (t *PingReply) Marshal(wire io.Writer) {
 }
 
@@ -417,11 +431,13 @@ func (p *BeaconCache) Get() *Beacon {
 	}
 	return t
 }
+
 func (p *BeaconCache) Put(t *Beacon) {
 	p.mu.Lock()
 	p.cache = append(p.cache, t)
 	p.mu.Unlock()
 }
+
 func (t *Beacon) Marshal(wire io.Writer) {
 	var b [8]byte
 	var bs []byte
@@ -477,11 +493,13 @@ func (p *ReadReplyCache) Get() *ReadReply {
 	}
 	return t
 }
+
 func (p *ReadReplyCache) Put(t *ReadReply) {
 	p.mu.Lock()
 	p.cache = append(p.cache, t)
 	p.mu.Unlock()
 }
+
 func (t *ReadReply) Marshal(wire io.Writer) {
 	var b [4]byte
 	var bs []byte
@@ -502,7 +520,7 @@ func (t *ReadReply) Unmarshal(wire io.Reader) error {
 	if _, err := io.ReadAtLeast(wire, bs, 4); err != nil {
 		return err
 	}
-	t.CommandId = int32((uint32(bs[0]) | (uint32(bs[1]) << 8) | (uint32(bs[2]) << 16) | (uint32(bs[3]) << 24)))
+	t.CommandId = int32(uint32(bs[0]) | (uint32(bs[1]) << 8) | (uint32(bs[2]) << 16) | (uint32(bs[3]) << 24))
 	t.Value.Unmarshal(wire)
 	return nil
 }
@@ -535,11 +553,13 @@ func (p *ProposeAndReadReplyCache) Get() *ProposeAndReadReply {
 	}
 	return t
 }
+
 func (p *ProposeAndReadReplyCache) Put(t *ProposeAndReadReply) {
 	p.mu.Lock()
 	p.cache = append(p.cache, t)
 	p.mu.Unlock()
 }
+
 func (t *ProposeAndReadReply) Marshal(wire io.Writer) {
 	var b [5]byte
 	var bs []byte
@@ -562,7 +582,7 @@ func (t *ProposeAndReadReply) Unmarshal(wire io.Reader) error {
 		return err
 	}
 	t.OK = uint8(bs[0])
-	t.CommandId = int32((uint32(bs[1]) | (uint32(bs[2]) << 8) | (uint32(bs[3]) << 16) | (uint32(bs[4]) << 24)))
+	t.CommandId = int32(uint32(bs[1]) | (uint32(bs[2]) << 8) | (uint32(bs[3]) << 16) | (uint32(bs[4]) << 24))
 	t.Value.Unmarshal(wire)
 	return nil
 }
@@ -595,11 +615,13 @@ func (p *ProposeReplyCache) Get() *ProposeReply {
 	}
 	return t
 }
+
 func (p *ProposeReplyCache) Put(t *ProposeReply) {
 	p.mu.Lock()
 	p.cache = append(p.cache, t)
 	p.mu.Unlock()
 }
+
 func (t *ProposeReply) Marshal(wire io.Writer) {
 	var b [5]byte
 	var bs []byte
@@ -621,7 +643,7 @@ func (t *ProposeReply) Unmarshal(wire io.Reader) error {
 		return err
 	}
 	t.OK = uint8(bs[0])
-	t.CommandId = int32((uint32(bs[1]) | (uint32(bs[2]) << 8) | (uint32(bs[3]) << 16) | (uint32(bs[4]) << 24)))
+	t.CommandId = int32(uint32(bs[1]) | (uint32(bs[2]) << 8) | (uint32(bs[3]) << 16) | (uint32(bs[4]) << 24))
 	return nil
 }
 
@@ -653,11 +675,13 @@ func (p *BeTheLeaderReplyCache) Get() *BeTheLeaderReply {
 	}
 	return t
 }
+
 func (p *BeTheLeaderReplyCache) Put(t *BeTheLeaderReply) {
 	p.mu.Lock()
 	p.cache = append(p.cache, t)
 	p.mu.Unlock()
 }
+
 func (t *BeTheLeaderReply) Marshal(wire io.Writer) {
 }
 
@@ -693,11 +717,13 @@ func (p *ProposeReplyTSCache) Get() *ProposeReplyTS {
 	}
 	return t
 }
+
 func (p *ProposeReplyTSCache) Put(t *ProposeReplyTS) {
 	p.mu.Lock()
 	p.cache = append(p.cache, t)
 	p.mu.Unlock()
 }
+
 func (t *ProposeReplyTS) Marshal(wire io.Writer) {
 	var b [8]byte
 	var bs []byte
@@ -731,12 +757,12 @@ func (t *ProposeReplyTS) Unmarshal(wire io.Reader) error {
 		return err
 	}
 	t.OK = uint8(bs[0])
-	t.CommandId = int32((uint32(bs[1]) | (uint32(bs[2]) << 8) | (uint32(bs[3]) << 16) | (uint32(bs[4]) << 24)))
+	t.CommandId = int32(uint32(bs[1]) | (uint32(bs[2]) << 8) | (uint32(bs[3]) << 16) | (uint32(bs[4]) << 24))
 	t.Value.Unmarshal(wire)
 	bs = b[:8]
 	if _, err := io.ReadAtLeast(wire, bs, 8); err != nil {
 		return err
 	}
-	t.Timestamp = int64((uint64(bs[0]) | (uint64(bs[1]) << 8) | (uint64(bs[2]) << 16) | (uint64(bs[3]) << 24) | (uint64(bs[4]) << 32) | (uint64(bs[5]) << 40) | (uint64(bs[6]) << 48) | (uint64(bs[7]) << 56)))
+	t.Timestamp = int64(uint64(bs[0]) | (uint64(bs[1]) << 8) | (uint64(bs[2]) << 16) | (uint64(bs[3]) << 24) | (uint64(bs[4]) << 32) | (uint64(bs[5]) << 40) | (uint64(bs[6]) << 48) | (uint64(bs[7]) << 56))
 	return nil
 }
