@@ -14,9 +14,7 @@ import (
 	"time"
 
 	"github.com/Bromles/epaxos-fixed/src/epaxos"
-	"github.com/Bromles/epaxos-fixed/src/gpaxos"
 	"github.com/Bromles/epaxos-fixed/src/masterproto"
-	"github.com/Bromles/epaxos-fixed/src/paxos"
 )
 
 var (
@@ -24,9 +22,6 @@ var (
 	masterAddr          = flag.String("maddr", "", "Master address. Defaults to localhost.")
 	masterPort          = flag.Int("mport", 7087, "Master port.  Defaults to 7087.")
 	myAddr              = flag.String("addr", "", "Server address (this machine). Defaults to localhost.")
-	doMencius           = flag.Bool("m", false, "Use Mencius as the replication protocol. Defaults to false.")
-	doGpaxos            = flag.Bool("g", false, "Use Generalized Paxos as the replication protocol. Defaults to false.")
-	doEpaxos            = flag.Bool("e", false, "Use EPaxos as the replication protocol. Defaults to false.")
 	procs               = flag.Int("p", 2, "GOMAXPROCS. Defaults to 2")
 	cpuprofile          = flag.String("cpuprofile", "", "write cpu profile to file")
 	thrifty             = flag.Bool("thrifty", false, "Use only as many messages as strictly required for inter-replica communication.")
@@ -45,10 +40,6 @@ func main() {
 
 	runtime.GOMAXPROCS(*procs)
 
-	if *doMencius && *thrifty {
-		log.Fatal("incompatble options -m -thrifty")
-	}
-
 	if *cpuprofile != "" {
 		f, err := os.Create(*cpuprofile)
 		if err != nil {
@@ -63,27 +54,15 @@ func main() {
 
 	log.Printf("Server starting on port %d\n", *portnum)
 
-	replicaId, nodeList, isLeader := registerWithMaster(fmt.Sprintf("%s:%d", *masterAddr, *masterPort))
+	replicaId, nodeList := registerWithMaster(fmt.Sprintf("%s:%d", *masterAddr, *masterPort))
 
-	if *doEpaxos || *doMencius || *doGpaxos || *maxfailures == -1 {
-		*maxfailures = (len(nodeList) - 1) / 2
-	}
+	*maxfailures = (len(nodeList) - 1) / 2
 
 	log.Printf("Tolerating %d max. failures\n", *maxfailures)
 
-	if *doEpaxos {
-		log.Println("Starting Egalitarian Paxos replica...")
-		rep := epaxos.NewReplica(replicaId, nodeList, *thrifty, *exec, *lread, *dreply, *beacon, *durable, *batchWait, *transitiveConflicts, *maxfailures)
-		rpc.Register(rep)
-	} else if *doGpaxos {
-		log.Println("Starting Generalized Paxos replica...")
-		rep := gpaxos.NewReplica(replicaId, nodeList, isLeader, *thrifty, *exec, *lread, *dreply, *maxfailures)
-		rpc.Register(rep)
-	} else {
-		log.Println("Starting classic Paxos replica...")
-		rep := paxos.NewReplica(replicaId, nodeList, isLeader, *thrifty, *exec, *lread, *dreply, *durable, *batchWait, *maxfailures)
-		rpc.Register(rep)
-	}
+	log.Println("Starting Egalitarian Paxos replica...")
+	rep := epaxos.NewReplica(replicaId, nodeList, *thrifty, *exec, *lread, *dreply, *beacon, *durable, *batchWait, *transitiveConflicts, *maxfailures)
+	rpc.Register(rep)
 
 	rpc.HandleHTTP()
 	// listen for RPC on a different port (8070 by default)
@@ -95,8 +74,8 @@ func main() {
 	http.Serve(l, nil)
 }
 
-func registerWithMaster(masterAddr string) (int, []string, bool) {
-	args := &masterproto.RegisterArgs{*myAddr, *portnum}
+func registerWithMaster(masterAddr string) (int, []string) {
+	args := &masterproto.RegisterArgs{Addr: *myAddr, Port: *portnum}
 	var reply masterproto.RegisterReply
 
 	for done := false; !done; {
@@ -115,7 +94,7 @@ func registerWithMaster(masterAddr string) (int, []string, bool) {
 		time.Sleep(1e9)
 	}
 
-	return reply.ReplicaId, reply.NodeList, reply.IsLeader
+	return reply.ReplicaId, reply.NodeList
 }
 
 func catchKill(interrupt chan os.Signal) {
