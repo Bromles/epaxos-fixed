@@ -23,8 +23,8 @@ import (
 )
 
 const (
-	TRUE        = uint8(1)
-	TIMEOUT     = 3 * time.Second
+	True        = uint8(1)
+	Timeout     = 3 * time.Second
 	MaxAttempts = 3
 )
 
@@ -126,7 +126,7 @@ func Dial(addr string, connect bool) net.Conn {
 	var done bool
 
 	for done = false; !done; {
-		conn, err = net.DialTimeout("tcp", addr, TIMEOUT)
+		conn, err = net.DialTimeout("tcp", addr, Timeout)
 
 		if err == nil {
 			if connect {
@@ -182,7 +182,7 @@ func Call(cli *rpc.Client, method string, args interface{}, reply interface{}) e
 		}
 		return err
 
-	case <-time.After(TIMEOUT):
+	case <-time.After(Timeout):
 		log.Printf("RPC timeout: " + method)
 		return errors.New("RPC timeout")
 	}
@@ -363,7 +363,7 @@ func (b *Parameters) execute(args genericsmrproto.Propose) []byte {
 				b.retries--
 				b.Disconnect()
 				log.Println("Reconnecting ...")
-				time.Sleep(TIMEOUT) // must be inline with the closest quorum re-computation
+				time.Sleep(Timeout) // must be inline with the closest quorum re-computation
 				err = b.Connect()
 			}
 
@@ -388,7 +388,7 @@ func (b *Parameters) waitReplies(submitter int) (state.Value, error) {
 
 	rep := new(genericsmrproto.ProposeReplyTS)
 	if err = rep.Unmarshal(b.readers[submitter]); err == nil {
-		if rep.OK == TRUE {
+		if rep.OK == True {
 			ret = rep.Value
 		} else {
 			err = errors.New("failed to receive a response")

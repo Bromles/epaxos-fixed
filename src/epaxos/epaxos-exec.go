@@ -135,7 +135,7 @@ func (e *Exec) strongconnect(v *Instance, index *int) bool {
 					val := w.Cmds[idx].Execute(e.r.State)
 					e.r.ReplyProposeTS(
 						&genericsmrproto.ProposeReplyTS{
-							OK:        TRUE,
+							OK:        True,
 							CommandId: w.lb.clientProposals[idx].CommandId,
 							Value:     val,
 							Timestamp: w.lb.clientProposals[idx].Timestamp,

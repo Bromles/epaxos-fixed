@@ -18,7 +18,7 @@ import (
 const MaxInstance = 10 * 1024 * 1024
 
 const (
-	TRUE = uint8(1)
+	True = uint8(1)
 
 	AdaptTimeSec = 10
 )
@@ -86,7 +86,7 @@ type Instance struct {
 	Deps           []int32
 	lb             *LeaderBookkeeping
 	Index, Lowlink int
-	bfilter        *bloomfilter.Bloomfilter
+	bfilter        *bloomfilter.BloomFilter
 	proposeTime    int64
 	id             *instanceId
 }
@@ -121,34 +121,29 @@ type LeaderBookkeeping struct {
 
 func NewReplica(id int, peerAddrList []string, exec bool, lread bool, dreply bool, beacon bool, durable bool, batchWait int, transconf bool, failures int) *Replica {
 	r := &Replica{
-		genericsmr.NewReplica(id, peerAddrList, exec, lread, dreply, failures),
-		make(chan fastrpc.Serializable, genericsmr.ChanBufferSize),
-		make(chan fastrpc.Serializable, genericsmr.ChanBufferSize),
-		make(chan fastrpc.Serializable, genericsmr.ChanBufferSize),
-		make(chan fastrpc.Serializable, genericsmr.ChanBufferSize),
-		make(chan fastrpc.Serializable, genericsmr.ChanBufferSize),
-		make(chan fastrpc.Serializable, genericsmr.ChanBufferSize*3),
-		make(chan fastrpc.Serializable, genericsmr.ChanBufferSize*3),
-		make(chan fastrpc.Serializable, genericsmr.ChanBufferSize*2),
-		make(chan fastrpc.Serializable, genericsmr.ChanBufferSize),
-		make(chan fastrpc.Serializable, genericsmr.ChanBufferSize),
-		0, 0, 0, 0, 0, 0, 0, 0, 0,
-		make([][]*Instance, len(peerAddrList)),
-		make([]int32, len(peerAddrList)),
-		make([]int32, len(peerAddrList)),
-		make([]int32, len(peerAddrList)),
-		nil,
-		make([]map[state.Key]int32, len(peerAddrList)),
-		make(map[state.Key]int32),
-		0,
-		0,
-		-1,
-		new(sync.Mutex),
-		make(chan *instanceId, genericsmr.ChanBufferSize),
-		false,
-		-1,
-		batchWait,
-		transconf,
+		Replica:               genericsmr.NewReplica(id, peerAddrList, exec, lread, dreply, failures),
+		prepareChan:           make(chan fastrpc.Serializable, genericsmr.ChanBufferSize),
+		preAcceptChan:         make(chan fastrpc.Serializable, genericsmr.ChanBufferSize),
+		acceptChan:            make(chan fastrpc.Serializable, genericsmr.ChanBufferSize),
+		commitChan:            make(chan fastrpc.Serializable, genericsmr.ChanBufferSize),
+		prepareReplyChan:      make(chan fastrpc.Serializable, genericsmr.ChanBufferSize),
+		preAcceptReplyChan:    make(chan fastrpc.Serializable, genericsmr.ChanBufferSize*3),
+		preAcceptOKChan:       make(chan fastrpc.Serializable, genericsmr.ChanBufferSize*3),
+		acceptReplyChan:       make(chan fastrpc.Serializable, genericsmr.ChanBufferSize*2),
+		tryPreAcceptChan:      make(chan fastrpc.Serializable, genericsmr.ChanBufferSize),
+		tryPreAcceptReplyChan: make(chan fastrpc.Serializable, genericsmr.ChanBufferSize),
+		InstanceSpace:         make([][]*Instance, len(peerAddrList)),
+		crtInstance:           make([]int32, len(peerAddrList)),
+		CommittedUpTo:         make([]int32, len(peerAddrList)),
+		ExecedUpTo:            make([]int32, len(peerAddrList)),
+		conflicts:             make([]map[state.Key]int32, len(peerAddrList)),
+		maxSeqPerKey:          make(map[state.Key]int32),
+		latestCPInstance:      -1,
+		clientMutex:           new(sync.Mutex),
+		instancesToRecover:    make(chan *instanceId, genericsmr.ChanBufferSize),
+		maxRecvBallot:         -1,
+		batchWait:             batchWait,
+		transconf:             transconf,
 	}
 
 	r.Beacon = beacon
@@ -254,9 +249,9 @@ func (r *Replica) slowClock() {
 }
 
 func (r *Replica) stopAdapting() {
-	time.Sleep(1000 * 1000 * 1000 * AdaptTimeSec)
+	time.Sleep(1 * time.Second * AdaptTimeSec)
 	r.Beacon = false
-	time.Sleep(1000 * 1000 * 1000)
+	time.Sleep(1 * time.Second)
 
 	for i := 0; i < r.N-1; i++ {
 		minI := i
@@ -997,7 +992,7 @@ func (r *Replica) handlePreAcceptReply(pareply *epaxosproto.PreAcceptReply) {
 			for i := 0; i < len(inst.lb.clientProposals); i++ {
 				r.ReplyProposeTS(
 					&genericsmrproto.ProposeReplyTS{
-						OK:        TRUE,
+						OK:        True,
 						CommandId: inst.lb.clientProposals[i].CommandId,
 						Value:     state.NIL(),
 						Timestamp: inst.lb.clientProposals[i].Timestamp,
@@ -1127,7 +1122,7 @@ func (r *Replica) handleAcceptReply(areply *epaxosproto.AcceptReply) {
 			for i := 0; i < len(inst.lb.clientProposals); i++ {
 				r.ReplyProposeTS(
 					&genericsmrproto.ProposeReplyTS{
-						OK:        TRUE,
+						OK:        True,
 						CommandId: inst.lb.clientProposals[i].CommandId,
 						Value:     state.NIL(),
 						Timestamp: inst.lb.clientProposals[i].Timestamp,

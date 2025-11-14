@@ -1,31 +1,31 @@
 package bitvec
 
-type Bitvec []uint64
+type BitVec []uint64
 
-func New(size uint32) Bitvec {
-	asize := size / 64
-	if asize*64 < size {
-		asize++
+func New(size uint32) BitVec {
+	aSize := size / 64
+	if aSize*64 < size {
+		aSize++
 	}
-	bv := Bitvec(make([]uint64, asize))
+	bv := BitVec(make([]uint64, aSize))
 	bv.Clear()
 	return bv
 }
 
-func (bv Bitvec) Clear() {
+func (bv BitVec) Clear() {
 	for i := 0; i < len(bv); i++ {
 		bv[i] = 0
 	}
 }
 
-func (bv Bitvec) GetBit(pos uint32) bool {
+func (bv BitVec) GetBit(pos uint32) bool {
 	return (bv[pos>>6] & (1 << (pos & uint32(63)))) != 0
 }
 
-func (bv Bitvec) SetBit(pos uint32) {
+func (bv BitVec) SetBit(pos uint32) {
 	bv[pos>>6] |= uint64(1) << (pos & uint32(63))
 }
 
-func (bv Bitvec) ResetBit(pos uint32) {
+func (bv BitVec) ResetBit(pos uint32) {
 	bv[pos>>6] &= ^(uint64(1) << (pos & uint32(63)))
 }

@@ -14,18 +14,18 @@ import (
 )
 
 var (
-	clientId   = *flag.String("id", "", "the id of the client. Default is RFC 4122 nodeID.")
-	masterAddr = flag.String("maddr", "", "Master address. Defaults to localhost")
-	masterPort = flag.Int("mport", 7087, "Master port. ")
-	reqsNb     = flag.Int("q", 1000, "Total number of requests. ")
-	writes     = flag.Int("w", 100, "Percentage of updates (writes). ")
-	psize      = flag.Int("psize", 100, "Payload size for writes.")
-	fast       = flag.Bool("f", false, "Fast Paxos: send message directly to all replicas. ")
-	localReads = flag.Bool("l", false, "Execute reads at the closest (local) replica. ")
-	procs      = flag.Int("p", 2, "GOMAXPROCS. ")
-	conflicts  = flag.Int("c", 0, "Percentage of conflicts. Defaults to 0%")
-	verbose    = flag.Bool("v", false, "verbose mode. ")
-	scan       = flag.Bool("s", false, "replace read with short scan (100 elements)")
+	clientId    = *flag.String("id", "", "the id of the client. Default is RFC 4122 nodeID.")
+	masterAddr  = flag.String("maddr", "", "Master address. Defaults to localhost")
+	masterPort  = flag.Int("mport", 7087, "Master port. ")
+	reqsNb      = flag.Int("q", 1000, "Total number of requests. ")
+	writes      = flag.Int("w", 100, "Percentage of updates (writes). ")
+	payloadSize = flag.Int("payloadSize", 100, "Payload size for writes.")
+	fast        = flag.Bool("f", false, "Fast Paxos: send message directly to all replicas. ")
+	localReads  = flag.Bool("l", false, "Execute reads at the closest (local) replica. ")
+	procs       = flag.Int("p", 2, "GOMAXPROCS. ")
+	conflicts   = flag.Int("c", 0, "Percentage of conflicts. Defaults to 0%")
+	verbose     = flag.Bool("v", false, "verbose mode. ")
+	scan        = flag.Bool("s", false, "replace read with short scan (100 elements)")
 )
 
 func main() {
@@ -55,7 +55,7 @@ func main() {
 	put := make([]bool, *reqsNb)
 
 	clientKey := state.Key(uint64(uuid.New().Time())) // a command id unique to this client.
-	log.Printf("client: %v (verbose=%v, psize=%v, conflicts=%v, key=%v)", clientId, *verbose, *psize, *conflicts, clientKey)
+	log.Printf("client: %v (verbose=%v, payloadSize=%v, conflicts=%v, key=%v)", clientId, *verbose, *payloadSize, *conflicts, clientKey)
 	for i := 0; i < *reqsNb; i++ {
 		put[i] = false
 		if *writes > 0 {
@@ -82,7 +82,7 @@ func main() {
 		key := int64(karray[j])
 
 		if put[j] {
-			value := make([]byte, *psize)
+			value := make([]byte, *payloadSize)
 			// todo figure out if it is safe to replace with non-deterministic method
 			rand.Read(value)
 			proxy.Write(key, value)

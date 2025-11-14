@@ -42,15 +42,15 @@ func main() {
 	log.Printf("...waiting for %d replicas\n", *numNodes)
 
 	master := &Master{
-		*numNodes,
-		make([]string, 0, *numNodes),
-		make([]string, 0, *numNodes),
-		make([]int, 0, *numNodes),
-		new(sync.Mutex),
-		make([]*rpc.Client, *numNodes),
-		make([]bool, *numNodes),
-		make([]bool, *numNodes),
-		make([]float64, *numNodes),
+		N:         *numNodes,
+		nodeList:  make([]string, 0, *numNodes),
+		addrList:  make([]string, 0, *numNodes),
+		portList:  make([]int, 0, *numNodes),
+		lock:      new(sync.Mutex),
+		nodes:     make([]*rpc.Client, *numNodes),
+		leader:    make([]bool, *numNodes),
+		alive:     make([]bool, *numNodes),
+		latencies: make([]float64, *numNodes),
 	}
 
 	err := rpc.Register(master)
@@ -58,7 +58,9 @@ func main() {
 		log.Fatalf("Failed to register master: %v", err)
 		return
 	}
+
 	rpc.HandleHTTP()
+
 	l, err := net.Listen("tcp", fmt.Sprintf(":%d", *portnum))
 	if err != nil {
 		log.Fatal("Master listen error:", err)
@@ -81,25 +83,28 @@ func (master *Master) run() {
 			break
 		}
 		master.lock.Unlock()
-		time.Sleep(100000000)
+		time.Sleep(100 * time.Millisecond)
 	}
-	time.Sleep(2000000000) // wait servers are up and rolling
+	time.Sleep(2 * time.Second) // wait servers are up and rolling
 
 	// connect to SMR servers
 	for i := 0; i < master.N; {
 		var err error
+
 		addr := fmt.Sprintf("%s:%d", master.addrList[i], master.portList[i]+1000)
+
 		master.nodes[i], err = rpc.DialHTTP("tcp", addr)
 		if err != nil {
 			log.Printf("Error connecting to replica %d (%v), retrying .. \n", i, addr)
-			time.Sleep(1000000000) // retry
+			time.Sleep(1 * time.Second) // retry
 		} else {
 			i++
 		}
 	}
 
 	for {
-		time.Sleep(1000 * 1000 * 1000)
+		time.Sleep(1 * time.Second)
+
 		newLeader := false
 		for i, node := range master.nodes {
 			err := node.Call("Replica.Ping", new(genericsmrproto.PingArgs), new(genericsmrproto.PingReply))
@@ -117,9 +122,11 @@ func (master *Master) run() {
 			}
 			master.lock.Unlock()
 		}
+
 		if !newLeader {
 			continue
 		}
+
 		for i, newMaster := range master.nodes {
 			if master.alive[i] {
 				err := newMaster.Call("Replica.BeTheLeader", new(genericsmrproto.BeTheLeaderArgs), new(genericsmrproto.BeTheLeaderReply))
@@ -166,6 +173,7 @@ func (master *Master) Register(args *masterproto.RegisterArgs, reply *masterprot
 		if addr == "" {
 			addr = "127.0.0.1"
 		}
+
 		out, err := exec.Command("ping", addr, "-c 2", "-q").Output()
 		if err == nil {
 			master.latencies[index], _ = strconv.ParseFloat(strings.Split(string(out), "/")[4], 64)
@@ -211,6 +219,7 @@ func (master *Master) GetLeader(_ *masterproto.GetLeaderArgs, reply *masterproto
 			break
 		}
 	}
+
 	return nil
 }
 
@@ -226,11 +235,13 @@ func (master *Master) GetReplicaList(_ *masterproto.GetReplicaListArgs, reply *m
 
 	reply.ReplicaList = make([]string, 0)
 	reply.AliveList = make([]bool, 0)
+
 	for i, node := range master.nodeList {
 		reply.ReplicaList = append(reply.ReplicaList, node)
 		reply.AliveList = append(reply.AliveList, master.alive[i])
 	}
 
 	log.Printf("nodes list %v", reply.ReplicaList)
+
 	return nil
 }

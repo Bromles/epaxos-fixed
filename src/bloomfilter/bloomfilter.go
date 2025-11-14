@@ -26,21 +26,17 @@ func CityHash64(s uint64) uint64 {
 	return b
 }
 
-type Bloomfilter struct {
-	bv     bitvec.Bitvec
+type BloomFilter struct {
+	bv     bitvec.BitVec
 	m      uint32
 	k      uint32
 	powtwo uint32
 	mask   uint32
 }
 
-/*func New(m uint32, k uint32) *Bloomfilter {
-    return &Bloomfilter{bitvec.New(m), m, k}
-}*/
-
-func NewPowTwo(pt uint32, k uint32) *Bloomfilter {
+func NewPowTwo(pt uint32, k uint32) *BloomFilter {
 	m := uint32(math.Pow(2, float64(pt)))
-	return &Bloomfilter{bitvec.New(m), m, k, pt, (uint32(1) << pt) - 1}
+	return &BloomFilter{bitvec.New(m), m, k, pt, (uint32(1) << pt) - 1}
 }
 
 func hashX(h1 uint32, h2 uint32, i uint32) uint32 {
@@ -61,7 +57,7 @@ func hashX(h1 uint32, h2 uint32, i uint32) uint32 {
 	return 0
 }
 
-func (bf Bloomfilter) AddUint64(item uint64) {
+func (bf BloomFilter) AddUint64(item uint64) {
 	//    h64 := hash64(item)
 	h64 := CityHash64(item)
 	l32 := uint32(h64)
@@ -72,7 +68,7 @@ func (bf Bloomfilter) AddUint64(item uint64) {
 	}
 }
 
-func (bf Bloomfilter) CheckUint64(item uint64) bool {
+func (bf BloomFilter) CheckUint64(item uint64) bool {
 	//    h64 := hash64(item)
 	h64 := CityHash64(item)
 	l32 := uint32(h64)
