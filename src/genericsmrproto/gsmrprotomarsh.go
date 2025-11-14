@@ -14,12 +14,6 @@ type ProposeCache struct {
 	cache []*Propose
 }
 
-func NewProposeCache() *ProposeCache {
-	c := &ProposeCache{}
-	c.cache = make([]*Propose, 0)
-	return c
-}
-
 func (p *ProposeCache) Get() *Propose {
 	var t *Propose
 	p.mu.Lock()
@@ -90,12 +84,6 @@ type BeaconReplyCache struct {
 	cache []*BeaconReply
 }
 
-func NewBeaconReplyCache() *BeaconReplyCache {
-	c := &BeaconReplyCache{}
-	c.cache = make([]*BeaconReply, 0)
-	return c
-}
-
 func (p *BeaconReplyCache) Get() *BeaconReply {
 	var t *BeaconReply
 	p.mu.Lock()
@@ -139,7 +127,7 @@ func (t *BeaconReply) Unmarshal(wire io.Reader) error {
 	if _, err := io.ReadAtLeast(wire, bs, 8); err != nil {
 		return err
 	}
-	t.Timestamp = int64(int64(bs[0]) | (int64(bs[1]) << 8) | (int64(bs[2]) << 16) | (int64(bs[3]) << 24) | (int64(bs[4]) << 32) | (int64(bs[5]) << 40) | (int64(bs[6]) << 48) | (int64(bs[7]) << 56))
+	t.Timestamp = int64(bs[0]) | (int64(bs[1]) << 8) | (int64(bs[2]) << 16) | (int64(bs[3]) << 24) | (int64(bs[4]) << 32) | (int64(bs[5]) << 40) | (int64(bs[6]) << 48) | (int64(bs[7]) << 56)
 	return nil
 }
 
@@ -150,12 +138,6 @@ func (t *PingArgs) BinarySize() (nbytes int, sizeKnown bool) {
 type PingArgsCache struct {
 	mu    sync.Mutex
 	cache []*PingArgs
-}
-
-func NewPingArgsCache() *PingArgsCache {
-	c := &PingArgsCache{}
-	c.cache = make([]*PingArgs, 0)
-	return c
 }
 
 func (p *PingArgsCache) Get() *PingArgs {
@@ -182,7 +164,7 @@ func (t *PingArgs) Marshal(wire io.Writer) {
 	var b [1]byte
 	var bs []byte
 	bs = b[:1]
-	bs[0] = byte(t.ActAsLeader)
+	bs[0] = t.ActAsLeader
 	wire.Write(bs)
 }
 
@@ -193,7 +175,7 @@ func (t *PingArgs) Unmarshal(wire io.Reader) error {
 	if _, err := io.ReadAtLeast(wire, bs, 1); err != nil {
 		return err
 	}
-	t.ActAsLeader = uint8(bs[0])
+	t.ActAsLeader = bs[0]
 	return nil
 }
 
@@ -204,12 +186,6 @@ func (t *BeTheLeaderArgs) BinarySize() (nbytes int, sizeKnown bool) {
 type BeTheLeaderArgsCache struct {
 	mu    sync.Mutex
 	cache []*BeTheLeaderArgs
-}
-
-func NewBeTheLeaderArgsCache() *BeTheLeaderArgsCache {
-	c := &BeTheLeaderArgsCache{}
-	c.cache = make([]*BeTheLeaderArgs, 0)
-	return c
 }
 
 func (p *BeTheLeaderArgsCache) Get() *BeTheLeaderArgs {
@@ -232,10 +208,10 @@ func (p *BeTheLeaderArgsCache) Put(t *BeTheLeaderArgs) {
 	p.mu.Unlock()
 }
 
-func (t *BeTheLeaderArgs) Marshal(wire io.Writer) {
+func (t *BeTheLeaderArgs) Marshal() {
 }
 
-func (t *BeTheLeaderArgs) Unmarshal(wire io.Reader) error {
+func (t *BeTheLeaderArgs) Unmarshal() error {
 	return nil
 }
 
@@ -246,12 +222,6 @@ func (t *ProposeAndRead) BinarySize() (nbytes int, sizeKnown bool) {
 type ProposeAndReadCache struct {
 	mu    sync.Mutex
 	cache []*ProposeAndRead
-}
-
-func NewProposeAndReadCache() *ProposeAndReadCache {
-	c := &ProposeAndReadCache{}
-	c.cache = make([]*ProposeAndRead, 0)
-	return c
 }
 
 func (p *ProposeAndReadCache) Get() *ProposeAndRead {
@@ -310,12 +280,6 @@ type ReadCache struct {
 	cache []*Read
 }
 
-func NewReadCache() *ReadCache {
-	c := &ReadCache{}
-	c.cache = make([]*Read, 0)
-	return c
-}
-
 func (p *ReadCache) Get() *Read {
 	var t *Read
 	p.mu.Lock()
@@ -370,12 +334,6 @@ type PingReplyCache struct {
 	cache []*PingReply
 }
 
-func NewPingReplyCache() *PingReplyCache {
-	c := &PingReplyCache{}
-	c.cache = make([]*PingReply, 0)
-	return c
-}
-
 func (p *PingReplyCache) Get() *PingReply {
 	var t *PingReply
 	p.mu.Lock()
@@ -396,10 +354,10 @@ func (p *PingReplyCache) Put(t *PingReply) {
 	p.mu.Unlock()
 }
 
-func (t *PingReply) Marshal(wire io.Writer) {
+func (t *PingReply) Marshal() {
 }
 
-func (t *PingReply) Unmarshal(wire io.Reader) error {
+func (t *PingReply) Unmarshal() error {
 	return nil
 }
 
@@ -410,12 +368,6 @@ func (t *Beacon) BinarySize() (nbytes int, sizeKnown bool) {
 type BeaconCache struct {
 	mu    sync.Mutex
 	cache []*Beacon
-}
-
-func NewBeaconCache() *BeaconCache {
-	c := &BeaconCache{}
-	c.cache = make([]*Beacon, 0)
-	return c
 }
 
 func (p *BeaconCache) Get() *Beacon {
@@ -461,7 +413,7 @@ func (t *Beacon) Unmarshal(wire io.Reader) error {
 	if _, err := io.ReadAtLeast(wire, bs, 8); err != nil {
 		return err
 	}
-	t.Timestamp = int64(int64(bs[0]) | (int64(bs[1]) << 8) | (int64(bs[2]) << 16) | (int64(bs[3]) << 24) | (int64(bs[4]) << 32) | (int64(bs[5]) << 40) | (int64(bs[6]) << 48) | (int64(bs[7]) << 56))
+	t.Timestamp = int64(bs[0]) | (int64(bs[1]) << 8) | (int64(bs[2]) << 16) | (int64(bs[3]) << 24) | (int64(bs[4]) << 32) | (int64(bs[5]) << 40) | (int64(bs[6]) << 48) | (int64(bs[7]) << 56)
 	return nil
 }
 
@@ -472,12 +424,6 @@ func (t *ReadReply) BinarySize() (nbytes int, sizeKnown bool) {
 type ReadReplyCache struct {
 	mu    sync.Mutex
 	cache []*ReadReply
-}
-
-func NewReadReplyCache() *ReadReplyCache {
-	c := &ReadReplyCache{}
-	c.cache = make([]*ReadReply, 0)
-	return c
 }
 
 func (p *ReadReplyCache) Get() *ReadReply {
@@ -534,12 +480,6 @@ type ProposeAndReadReplyCache struct {
 	cache []*ProposeAndReadReply
 }
 
-func NewProposeAndReadReplyCache() *ProposeAndReadReplyCache {
-	c := &ProposeAndReadReplyCache{}
-	c.cache = make([]*ProposeAndReadReply, 0)
-	return c
-}
-
 func (p *ProposeAndReadReplyCache) Get() *ProposeAndReadReply {
 	var t *ProposeAndReadReply
 	p.mu.Lock()
@@ -564,7 +504,7 @@ func (t *ProposeAndReadReply) Marshal(wire io.Writer) {
 	var b [5]byte
 	var bs []byte
 	bs = b[:5]
-	bs[0] = byte(t.OK)
+	bs[0] = t.OK
 	tmp32 := t.CommandId
 	bs[1] = byte(tmp32)
 	bs[2] = byte(tmp32 >> 8)
@@ -581,7 +521,7 @@ func (t *ProposeAndReadReply) Unmarshal(wire io.Reader) error {
 	if _, err := io.ReadAtLeast(wire, bs, 5); err != nil {
 		return err
 	}
-	t.OK = uint8(bs[0])
+	t.OK = bs[0]
 	t.CommandId = int32(uint32(bs[1]) | (uint32(bs[2]) << 8) | (uint32(bs[3]) << 16) | (uint32(bs[4]) << 24))
 	t.Value.Unmarshal(wire)
 	return nil
@@ -594,12 +534,6 @@ func (t *ProposeReply) BinarySize() (nbytes int, sizeKnown bool) {
 type ProposeReplyCache struct {
 	mu    sync.Mutex
 	cache []*ProposeReply
-}
-
-func NewProposeReplyCache() *ProposeReplyCache {
-	c := &ProposeReplyCache{}
-	c.cache = make([]*ProposeReply, 0)
-	return c
 }
 
 func (p *ProposeReplyCache) Get() *ProposeReply {
@@ -626,7 +560,7 @@ func (t *ProposeReply) Marshal(wire io.Writer) {
 	var b [5]byte
 	var bs []byte
 	bs = b[:5]
-	bs[0] = byte(t.OK)
+	bs[0] = t.OK
 	tmp32 := t.CommandId
 	bs[1] = byte(tmp32)
 	bs[2] = byte(tmp32 >> 8)
@@ -642,7 +576,7 @@ func (t *ProposeReply) Unmarshal(wire io.Reader) error {
 	if _, err := io.ReadAtLeast(wire, bs, 5); err != nil {
 		return err
 	}
-	t.OK = uint8(bs[0])
+	t.OK = bs[0]
 	t.CommandId = int32(uint32(bs[1]) | (uint32(bs[2]) << 8) | (uint32(bs[3]) << 16) | (uint32(bs[4]) << 24))
 	return nil
 }
@@ -654,12 +588,6 @@ func (t *BeTheLeaderReply) BinarySize() (nbytes int, sizeKnown bool) {
 type BeTheLeaderReplyCache struct {
 	mu    sync.Mutex
 	cache []*BeTheLeaderReply
-}
-
-func NewBeTheLeaderReplyCache() *BeTheLeaderReplyCache {
-	c := &BeTheLeaderReplyCache{}
-	c.cache = make([]*BeTheLeaderReply, 0)
-	return c
 }
 
 func (p *BeTheLeaderReplyCache) Get() *BeTheLeaderReply {
@@ -682,10 +610,10 @@ func (p *BeTheLeaderReplyCache) Put(t *BeTheLeaderReply) {
 	p.mu.Unlock()
 }
 
-func (t *BeTheLeaderReply) Marshal(wire io.Writer) {
+func (t *BeTheLeaderReply) Marshal() {
 }
 
-func (t *BeTheLeaderReply) Unmarshal(wire io.Reader) error {
+func (t *BeTheLeaderReply) Unmarshal() error {
 	return nil
 }
 
@@ -696,12 +624,6 @@ func (t *ProposeReplyTS) BinarySize() (nbytes int, sizeKnown bool) {
 type ProposeReplyTSCache struct {
 	mu    sync.Mutex
 	cache []*ProposeReplyTS
-}
-
-func NewProposeReplyTSCache() *ProposeReplyTSCache {
-	c := &ProposeReplyTSCache{}
-	c.cache = make([]*ProposeReplyTS, 0)
-	return c
 }
 
 func (p *ProposeReplyTSCache) Get() *ProposeReplyTS {
@@ -728,7 +650,7 @@ func (t *ProposeReplyTS) Marshal(wire io.Writer) {
 	var b [8]byte
 	var bs []byte
 	bs = b[:5]
-	bs[0] = byte(t.OK)
+	bs[0] = t.OK
 	tmp32 := t.CommandId
 	bs[1] = byte(tmp32)
 	bs[2] = byte(tmp32 >> 8)
@@ -756,7 +678,7 @@ func (t *ProposeReplyTS) Unmarshal(wire io.Reader) error {
 	if _, err := io.ReadAtLeast(wire, bs, 5); err != nil {
 		return err
 	}
-	t.OK = uint8(bs[0])
+	t.OK = bs[0]
 	t.CommandId = int32(uint32(bs[1]) | (uint32(bs[2]) << 8) | (uint32(bs[3]) << 16) | (uint32(bs[4]) << 24))
 	t.Value.Unmarshal(wire)
 	bs = b[:8]

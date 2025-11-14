@@ -53,7 +53,11 @@ func main() {
 		make([]float64, *numNodes),
 	}
 
-	rpc.Register(master)
+	err := rpc.Register(master)
+	if err != nil {
+		log.Fatalf("Failed to register master: %v", err)
+		return
+	}
 	rpc.HandleHTTP()
 	l, err := net.Listen("tcp", fmt.Sprintf(":%d", *portnum))
 	if err != nil {
@@ -62,11 +66,15 @@ func main() {
 
 	go master.run()
 
-	http.Serve(l, nil)
+	err = http.Serve(l, nil)
+	if err != nil {
+		log.Fatal("Master serve error:", err)
+		return
+	}
 }
 
 func (master *Master) run() {
-	for true {
+	for {
 		master.lock.Lock()
 		if len(master.nodeList) == master.N {
 			master.lock.Unlock()
@@ -90,9 +98,9 @@ func (master *Master) run() {
 		}
 	}
 
-	for true {
+	for {
 		time.Sleep(1000 * 1000 * 1000)
-		new_leader := false
+		newLeader := false
 		for i, node := range master.nodes {
 			err := node.Call("Replica.Ping", new(genericsmrproto.PingArgs), new(genericsmrproto.PingReply))
 			master.lock.Lock()
@@ -101,7 +109,7 @@ func (master *Master) run() {
 				master.alive[i] = false
 				if master.leader[i] {
 					// need to choose a new leader
-					new_leader = true
+					newLeader = true
 					master.leader[i] = false
 				}
 			} else {
@@ -109,12 +117,12 @@ func (master *Master) run() {
 			}
 			master.lock.Unlock()
 		}
-		if !new_leader {
+		if !newLeader {
 			continue
 		}
-		for i, new_master := range master.nodes {
+		for i, newMaster := range master.nodes {
 			if master.alive[i] {
-				err := new_master.Call("Replica.BeTheLeader", new(genericsmrproto.BeTheLeaderArgs), new(genericsmrproto.BeTheLeaderReply))
+				err := newMaster.Call("Replica.BeTheLeader", new(genericsmrproto.BeTheLeaderArgs), new(genericsmrproto.BeTheLeaderReply))
 				if err == nil {
 					master.lock.Lock()
 					master.leader[i] = true
@@ -195,20 +203,20 @@ func (master *Master) Register(args *masterproto.RegisterArgs, reply *masterprot
 	return nil
 }
 
-func (master *Master) GetLeader(args *masterproto.GetLeaderArgs, reply *masterproto.GetLeaderReply) error {
+func (master *Master) GetLeader(reply *masterproto.GetLeaderReply) error {
 	master.lock.Lock()
 	defer master.lock.Unlock()
 
 	for i, l := range master.leader {
 		if l {
-			*reply = masterproto.GetLeaderReply{i}
+			*reply = masterproto.GetLeaderReply{LeaderId: i}
 			break
 		}
 	}
 	return nil
 }
 
-func (master *Master) GetReplicaList(args *masterproto.GetReplicaListArgs, reply *masterproto.GetReplicaListReply) error {
+func (master *Master) GetReplicaList(reply *masterproto.GetReplicaListReply) error {
 	master.lock.Lock()
 	defer master.lock.Unlock()
 

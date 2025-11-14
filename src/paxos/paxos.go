@@ -7,7 +7,6 @@ import (
 	"math"
 	"time"
 
-	"github.com/Bromles/epaxos-fixed/src/dlog"
 	"github.com/Bromles/epaxos-fixed/src/fastrpc"
 	"github.com/Bromles/epaxos-fixed/src/genericsmr"
 	"github.com/Bromles/epaxos-fixed/src/genericsmrproto"
@@ -84,13 +83,13 @@ type LeaderBookkeeping struct {
 func NewReplica(id int, peerAddrList []string, Isleader bool, thrifty bool, exec bool, lread bool, dreply bool, durable bool, batchWait int, f int) *Replica {
 	r := &Replica{
 		genericsmr.NewReplica(id, peerAddrList, thrifty, exec, lread, dreply, f),
-		make(chan fastrpc.Serializable, genericsmr.CHAN_BUFFER_SIZE),
-		make(chan fastrpc.Serializable, genericsmr.CHAN_BUFFER_SIZE),
-		make(chan fastrpc.Serializable, genericsmr.CHAN_BUFFER_SIZE),
-		make(chan fastrpc.Serializable, genericsmr.CHAN_BUFFER_SIZE),
-		make(chan fastrpc.Serializable, genericsmr.CHAN_BUFFER_SIZE),
-		make(chan fastrpc.Serializable, 3*genericsmr.CHAN_BUFFER_SIZE),
-		make(chan int32, 3*genericsmr.CHAN_BUFFER_SIZE),
+		make(chan fastrpc.Serializable, genericsmr.ChanBufferSize),
+		make(chan fastrpc.Serializable, genericsmr.ChanBufferSize),
+		make(chan fastrpc.Serializable, genericsmr.ChanBufferSize),
+		make(chan fastrpc.Serializable, genericsmr.ChanBufferSize),
+		make(chan fastrpc.Serializable, genericsmr.ChanBufferSize),
+		make(chan fastrpc.Serializable, 3*genericsmr.ChanBufferSize),
+		make(chan int32, 3*genericsmr.ChanBufferSize),
 		0, 0, 0, 0, 0, 0,
 		false,
 		make([]*Instance, 15*1024*1024),
@@ -238,42 +237,42 @@ func (r *Replica) run() {
 		case prepareS := <-r.prepareChan:
 			prepare := prepareS.(*paxosproto.Prepare)
 			// got a Prepare message
-			dlog.Printf("Received Prepare from replica %d, for instance %d\n", prepare.LeaderId, prepare.Instance)
+			log.Printf("Received Prepare from replica %d, for instance %d\n", prepare.LeaderId, prepare.Instance)
 			r.handlePrepare(prepare)
 			break
 
 		case acceptS := <-r.acceptChan:
 			accept := acceptS.(*paxosproto.Accept)
 			// got an Accept message
-			dlog.Printf("Received Accept from replica %d, for instance %d\n", accept.LeaderId, accept.Instance)
+			log.Printf("Received Accept from replica %d, for instance %d\n", accept.LeaderId, accept.Instance)
 			r.handleAccept(accept)
 			break
 
 		case commitS := <-r.commitChan:
 			commit := commitS.(*paxosproto.Commit)
 			// got a Commit message
-			dlog.Printf("Received Commit from replica %d, for instance %d\n", commit.LeaderId, commit.Instance)
+			log.Printf("Received Commit from replica %d, for instance %d\n", commit.LeaderId, commit.Instance)
 			r.handleCommit(commit)
 			break
 
 		case commitS := <-r.commitShortChan:
 			commit := commitS.(*paxosproto.CommitShort)
 			// got a Commit message
-			dlog.Printf("Received short Commit from replica %d, for instance %d\n", commit.LeaderId, commit.Instance)
+			log.Printf("Received short Commit from replica %d, for instance %d\n", commit.LeaderId, commit.Instance)
 			r.handleCommitShort(commit)
 			break
 
 		case prepareReplyS := <-r.prepareReplyChan:
 			prepareReply := prepareReplyS.(*paxosproto.PrepareReply)
 			// got a Prepare reply
-			dlog.Printf("Received PrepareReply for instance %d\n", prepareReply.Instance)
+			log.Printf("Received PrepareReply for instance %d\n", prepareReply.Instance)
 			r.handlePrepareReply(prepareReply)
 			break
 
 		case acceptReplyS := <-r.acceptReplyChan:
 			acceptReply := acceptReplyS.(*paxosproto.AcceptReply)
 			// got an Accept reply
-			dlog.Printf("Received AcceptReply for instance %d\n", acceptReply.Instance)
+			log.Printf("Received AcceptReply for instance %d\n", acceptReply.Instance)
 			r.handleAcceptReply(acceptReply)
 			break
 
@@ -293,7 +292,7 @@ func (r *Replica) makeBallot(instance int32) {
 		}
 	}
 	lb.lastTriedBallot = n
-	dlog.Printf("Last tried ballot is %d in %d\n", lb.lastTriedBallot, instance)
+	log.Printf("Last tried ballot is %d in %d\n", lb.lastTriedBallot, instance)
 }
 
 func (r *Replica) bcastPrepare(instance int32) {
@@ -383,14 +382,14 @@ func (r *Replica) bcastCommit(instance int32, ballot int32, command []state.Comm
 
 func (r *Replica) handlePropose(propose *genericsmr.Propose) {
 	if !r.IsLeader {
-		dlog.Printf("Not the leader, cannot propose %v\n", propose.CommandId)
+		log.Printf("Not the leader, cannot propose %v\n", propose.CommandId)
 		preply := &genericsmrproto.ProposeReplyTS{FALSE, -1, state.NIL(), 0}
 		r.ReplyProposeTS(preply, propose.Reply, propose.Mutex)
 		return
 	}
 
 	batchSize := len(r.ProposeChan) + 1
-	dlog.Printf("Batched %d\n", batchSize)
+	log.Printf("Batched %d\n", batchSize)
 
 	proposals := make([]*genericsmr.Propose, batchSize)
 	cmds := make([]state.Command, batchSize)
@@ -416,10 +415,10 @@ func (r *Replica) handlePropose(propose *genericsmr.Propose) {
 	r.defaultBallot[r.Id] = lb.lastTriedBallot
 
 	if lb.lastTriedBallot != r.smallestDefaultBallot {
-		dlog.Printf("Classic round for instance %d w. %s\n", r.crtInstance, propose.Command.String())
+		log.Printf("Classic round for instance %d w. %s\n", r.crtInstance, propose.Command.String())
 		r.bcastPrepare(r.crtInstance)
 	} else {
-		dlog.Printf("Fast round for instance %d w. %s\n", r.crtInstance, propose.Command.String())
+		log.Printf("Fast round for instance %d w. %s\n", r.crtInstance, propose.Command.String())
 		inst.cmds = cmds
 		inst.lb.cmds = cmds
 		inst.bal = lb.lastTriedBallot
@@ -450,7 +449,7 @@ func (r *Replica) handlePrepare(prepare *paxosproto.Prepare) {
 	}
 
 	if inst.status == COMMITTED {
-		dlog.Printf("Already committed \n")
+		log.Printf("Already committed \n")
 		var pc paxosproto.Commit
 		pc.LeaderId = prepare.LeaderId
 		pc.Instance = prepare.Instance
@@ -462,9 +461,9 @@ func (r *Replica) handlePrepare(prepare *paxosproto.Prepare) {
 	}
 
 	if inst.bal > prepare.Ballot {
-		dlog.Printf("Joined higher ballot %d < %d", prepare.Ballot, inst.bal)
+		log.Printf("Joined higher ballot %d < %d", prepare.Ballot, inst.bal)
 	} else if inst.bal < prepare.Ballot {
-		dlog.Printf("Joining ballot %d ", prepare.Ballot)
+		log.Printf("Joining ballot %d ", prepare.Ballot)
 		inst.bal = prepare.Ballot
 		inst.status = PREPARED
 		if r.crtInstance == prepare.Instance {
@@ -472,7 +471,7 @@ func (r *Replica) handlePrepare(prepare *paxosproto.Prepare) {
 		}
 	} else {
 		// msg reordering
-		dlog.Printf("Ballot %d already joined", prepare.Ballot)
+		log.Printf("Ballot %d already joined", prepare.Ballot)
 	}
 
 	preply := &paxosproto.PrepareReply{prepare.Instance, inst.bal, inst.vbal, r.defaultBallot[r.Id], r.Id, inst.cmds}
@@ -502,9 +501,9 @@ func (r *Replica) handleAccept(accept *paxosproto.Accept) {
 		r.recordCommands(accept.Command)
 		r.sync()
 	} else if accept.Ballot < inst.bal {
-		dlog.Printf("Smaller ballot %d < %d\n", accept.Ballot, inst.bal)
+		log.Printf("Smaller ballot %d < %d\n", accept.Ballot, inst.bal)
 	} else if inst.status == COMMITTED {
-		dlog.Printf("Already committed \n")
+		log.Printf("Already committed \n")
 	} else {
 		inst.cmds = accept.Command
 		inst.bal = accept.Ballot
@@ -536,21 +535,21 @@ func (r *Replica) handleCommit(commit *paxosproto.Commit) {
 	}
 
 	if inst != nil && inst.status == COMMITTED {
-		dlog.Printf("Already committed \n")
+		log.Printf("Already committed \n")
 		return
 	}
 
 	if commit.Ballot < inst.bal {
-		dlog.Printf("Smaller ballot %d < %d\n", commit.Ballot, inst.bal)
+		log.Printf("Smaller ballot %d < %d\n", commit.Ballot, inst.bal)
 		return
 	}
 
-	dlog.Printf("Committing (crtInstance=%d)\n", r.crtInstance)
+	log.Printf("Committing (crtInstance=%d)\n", r.crtInstance)
 
 	// FIXME timeout on client side?
 	if inst.lb != nil && inst.lb.clientProposals != nil {
 		for _, p := range inst.lb.clientProposals {
-			dlog.Printf("In %d, re-proposing %s \n", commit.Instance, p.Command.String())
+			log.Printf("In %d, re-proposing %s \n", commit.Instance, p.Command.String())
 			r.ProposeChan <- p
 		}
 		inst.lb.clientProposals = nil
@@ -567,21 +566,21 @@ func (r *Replica) handleCommit(commit *paxosproto.Commit) {
 func (r *Replica) handleCommitShort(commit *paxosproto.CommitShort) {
 	inst := r.instanceSpace[commit.Instance]
 	if inst == nil {
-		dlog.Printf("Commit short received but nothing recorded \n")
+		log.Printf("Commit short received but nothing recorded \n")
 		return
 	}
 
 	if inst.status == COMMITTED {
-		dlog.Printf("Already committed \n")
+		log.Printf("Already committed \n")
 		return
 	}
 
 	if commit.Ballot < inst.bal {
-		dlog.Printf("Smaller ballot %d < %d\n", commit.Ballot, inst.bal)
+		log.Printf("Smaller ballot %d < %d\n", commit.Ballot, inst.bal)
 		return
 	}
 
-	dlog.Printf("Committing \n")
+	log.Printf("Committing \n")
 	r.instanceSpace[commit.Instance].status = COMMITTED
 	r.instanceSpace[commit.Instance].bal = commit.Ballot
 	r.recordInstanceMetadata(r.instanceSpace[commit.Instance])
@@ -597,17 +596,17 @@ func (r *Replica) handlePrepareReply(preply *paxosproto.PrepareReply) {
 	}
 
 	if preply.Ballot < lb.lastTriedBallot {
-		dlog.Printf("Message in late \n")
+		log.Printf("Message in late \n")
 		return
 	}
 
 	if preply.Ballot > lb.lastTriedBallot {
-		dlog.Printf("Another active leader using ballot %d \n", preply.Ballot)
+		log.Printf("Another active leader using ballot %d \n", preply.Ballot)
 		lb.nacks++
 		if lb.nacks+1 > r.N>>1 {
 			if r.IsLeader {
 				r.makeBallot(preply.Instance)
-				dlog.Printf("Retrying with ballot %d \n", lb.lastTriedBallot)
+				log.Printf("Retrying with ballot %d \n", lb.lastTriedBallot)
 				r.bcastPrepare(preply.Instance)
 			}
 		}
@@ -615,7 +614,7 @@ func (r *Replica) handlePrepareReply(preply *paxosproto.PrepareReply) {
 	}
 
 	if preply.VBallot > lb.ballot {
-		dlog.Printf("Prior vote found \n")
+		log.Printf("Prior vote found \n")
 		lb.ballot = preply.VBallot
 		lb.cmds = preply.Command
 	}
@@ -627,14 +626,14 @@ func (r *Replica) handlePrepareReply(preply *paxosproto.PrepareReply) {
 
 	if lb.prepareOKs+1 >= r.Replica.ReadQuorumSize() {
 		if lb.clientProposals != nil {
-			dlog.Printf("Pushing client proposals")
+			log.Printf("Pushing client proposals")
 			cmds := make([]state.Command, len(lb.clientProposals))
 			for i := 0; i < len(lb.clientProposals); i++ {
 				cmds[i] = lb.clientProposals[i].Command
 			}
 			lb.cmds = cmds
 		} else {
-			dlog.Printf("Pushing no-op")
+			log.Printf("Pushing no-op")
 			lb.cmds = state.NOOP()
 		}
 		inst.cmds = lb.cmds
@@ -670,22 +669,22 @@ func (r *Replica) handleAcceptReply(areply *paxosproto.AcceptReply) {
 	}
 
 	if inst.status >= COMMITTED {
-		dlog.Printf("Already committed ")
+		log.Printf("Already committed ")
 		return
 	}
 
 	if areply.Ballot < lb.lastTriedBallot {
-		dlog.Printf("Message in late ")
+		log.Printf("Message in late ")
 		return
 	}
 
 	if areply.Ballot > lb.lastTriedBallot {
-		dlog.Printf("Another active leader using ballot %d \n", areply.Ballot)
+		log.Printf("Another active leader using ballot %d \n", areply.Ballot)
 		lb.nacks++
 		if lb.nacks+1 >= r.Replica.WriteQuorumSize() {
 			if r.IsLeader {
 				r.makeBallot(areply.Ballot)
-				dlog.Printf("Retrying with ballot %d \n", lb.lastTriedBallot)
+				log.Printf("Retrying with ballot %d \n", lb.lastTriedBallot)
 				r.bcastPrepare(areply.Instance)
 			}
 		}
@@ -694,7 +693,7 @@ func (r *Replica) handleAcceptReply(areply *paxosproto.AcceptReply) {
 
 	lb.acceptOKs++
 	if lb.acceptOKs+1 >= r.Replica.WriteQuorumSize() {
-		dlog.Printf("Committing (crtInstance=%d)\n", r.crtInstance)
+		log.Printf("Committing (crtInstance=%d)\n", r.crtInstance)
 		inst = r.instanceSpace[areply.Instance]
 		inst.status = COMMITTED
 		r.recordInstanceMetadata(r.instanceSpace[areply.Instance])
@@ -714,7 +713,7 @@ func (r *Replica) handleAcceptReply(areply *paxosproto.AcceptReply) {
 			}
 		}
 	} else {
-		dlog.Printf("Not enough \n")
+		log.Printf("Not enough \n")
 	}
 }
 
@@ -749,7 +748,7 @@ func (r *Replica) executeCommands() {
 			inst := r.instanceSpace[i]
 			if inst != nil && inst.cmds != nil && inst.status == COMMITTED {
 				for j := 0; j < len(inst.cmds); j++ {
-					dlog.Printf("Executing " + inst.cmds[j].String())
+					log.Printf("Executing " + inst.cmds[j].String())
 					if r.Dreply && inst.lb != nil && inst.lb.clientProposals != nil {
 						val := inst.cmds[j].Execute(r.State)
 						propreply := &genericsmrproto.ProposeReplyTS{
@@ -765,13 +764,13 @@ func (r *Replica) executeCommands() {
 				}
 				executed = true
 				r.executedUpTo++
-				dlog.Printf("Executed up to %d (crtInstance=%d)", r.executedUpTo, r.crtInstance)
+				log.Printf("Executed up to %d (crtInstance=%d)", r.executedUpTo, r.crtInstance)
 			} else {
 				if i == problemInstance {
 					timeout += SLEEP_TIME_NS
 					if timeout >= COMMIT_GRACE_PERIOD {
 						for k := problemInstance; k <= r.crtInstance; k++ {
-							dlog.Printf("Recovering instance %d \n", k)
+							log.Printf("Recovering instance %d \n", k)
 							r.instancesToRecover <- k
 						}
 						problemInstance = 0

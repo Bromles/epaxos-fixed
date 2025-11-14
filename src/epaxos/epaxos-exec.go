@@ -1,19 +1,12 @@
 package epaxos
 
 import (
+	"log"
 	"sort"
 
-	//    "state"
-	"github.com/Bromles/epaxos-fixed/src/dlog"
 	"github.com/Bromles/epaxos-fixed/src/epaxosproto"
 	"github.com/Bromles/epaxos-fixed/src/genericsmrproto"
 	"github.com/Bromles/epaxos-fixed/src/state"
-)
-
-const (
-	WHITE int8 = iota
-	GRAY
-	BLACK
 )
 
 type Exec struct {
@@ -34,7 +27,7 @@ func (e *Exec) executeCommand(replica int32, instance int32) bool {
 		return true
 	}
 	if inst.Status != epaxosproto.COMMITTED {
-		dlog.Printf("Not committed instance %d.%d\n", replica, instance)
+		log.Printf("Not committed instance %d.%d\n", replica, instance)
 		return false
 	}
 
@@ -74,7 +67,7 @@ func (e *Exec) strongconnect(v *Instance, index *int) bool {
 	stack[l] = v
 
 	if v.Cmds == nil {
-		dlog.Printf("Null instance! \n")
+		log.Printf("Null instance! \n")
 		return false
 	}
 
@@ -82,7 +75,7 @@ func (e *Exec) strongconnect(v *Instance, index *int) bool {
 		inst := v.Deps[q]
 		for i := e.r.ExecedUpTo[q] + 1; i <= inst; i++ {
 			if e.r.InstanceSpace[q][i] == nil || e.r.InstanceSpace[q][i].Cmds == nil {
-				dlog.Printf("Null instance %d.%d\n", q, i)
+				log.Printf("Null instance %d.%d\n", q, i)
 				return false
 			}
 
@@ -105,7 +98,7 @@ func (e *Exec) strongconnect(v *Instance, index *int) bool {
 			}
 
 			for e.r.InstanceSpace[q][i].Status != epaxosproto.COMMITTED {
-				dlog.Printf("Not committed instance %d.%d\n", q, i)
+				log.Printf("Not committed instance %d.%d\n", q, i)
 				return false
 			}
 
@@ -135,17 +128,17 @@ func (e *Exec) strongconnect(v *Instance, index *int) bool {
 		for _, w := range list {
 			for idx := 0; idx < len(w.Cmds); idx++ {
 				shouldRespond := e.r.Dreply && w.lb != nil && w.lb.clientProposals != nil
-				dlog.Printf("Executing "+w.Cmds[idx].String()+" at %d.%d with (seq=%d, deps=%d, scc_size=%d, shouldRespond=%t)\n", w.id.replica, w.id.instance, w.Seq, w.Deps, len(list), shouldRespond)
+				log.Printf("Executing "+w.Cmds[idx].String()+" at %d.%d with (seq=%d, deps=%d, scc_size=%d, shouldRespond=%t)\n", w.id.replica, w.id.instance, w.Seq, w.Deps, len(list), shouldRespond)
 				if w.Cmds[idx].Op == state.NONE {
 					// nothing to do
 				} else if shouldRespond {
 					val := w.Cmds[idx].Execute(e.r.State)
 					e.r.ReplyProposeTS(
 						&genericsmrproto.ProposeReplyTS{
-							TRUE,
-							w.lb.clientProposals[idx].CommandId,
-							val,
-							w.lb.clientProposals[idx].Timestamp,
+							OK:        TRUE,
+							CommandId: w.lb.clientProposals[idx].CommandId,
+							Value:     val,
+							Timestamp: w.lb.clientProposals[idx].Timestamp,
 						},
 						w.lb.clientProposals[idx].Reply,
 						w.lb.clientProposals[idx].Mutex)

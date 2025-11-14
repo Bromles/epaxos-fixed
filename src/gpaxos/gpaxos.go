@@ -6,7 +6,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Bromles/epaxos-fixed/src/dlog"
 	"github.com/Bromles/epaxos-fixed/src/genericsmr"
 	"github.com/Bromles/epaxos-fixed/src/genericsmrproto"
 	"github.com/Bromles/epaxos-fixed/src/gpaxosproto"
@@ -249,7 +248,7 @@ func (r *Replica) send2b(msg *gpaxosproto.M_2b, w *bufio.Writer) {
 func (r *Replica) bcast2b(msg *gpaxosproto.M_2b) {
 	defer func() {
 		if err := recover(); err != nil {
-			dlog.Println("Commit bcast failed:", err)
+			log.Println("Commit bcast failed:", err)
 		}
 	}()
 
@@ -319,35 +318,35 @@ func (r *Replica) run() {
 
 			case prepare := <-r.prepareChan:
 				// got a Prepare message
-				dlog.Printf("Received Prepare for balnum %d\n", prepare.Balnum)
+				log.Printf("Received Prepare for balnum %d\n", prepare.Balnum)
 				r.commandsMutex.Lock()
 				r.handlePrepare(prepare)
 				r.commandsMutex.Unlock()
 				break
 
 			case msg := <-r.m1aChan:
-				dlog.Printf("Received 1a for balnum %d @ replica %d\n", msg.Balnum, r.Id)
+				log.Printf("Received 1a for balnum %d @ replica %d\n", msg.Balnum, r.Id)
 				r.commandsMutex.Lock()
 				r.handle1a(msg)
 				r.commandsMutex.Unlock()
 				break
 
 			case msg := <-r.m1bChan:
-				dlog.Printf("Received 1b for balnum %d @ replica %d\n", msg.Balnum, r.Id)
+				log.Printf("Received 1b for balnum %d @ replica %d\n", msg.Balnum, r.Id)
 				r.commandsMutex.Lock()
 				r.handle1b(msg)
 				r.commandsMutex.Unlock()
 				break
 
 			case msg := <-r.m2aChan:
-				dlog.Printf("Received 2a for balnum %d @ replica %d\n", msg.Balnum, r.Id)
+				log.Printf("Received 2a for balnum %d @ replica %d\n", msg.Balnum, r.Id)
 				r.commandsMutex.Lock()
 				r.handle2a(msg)
 				r.commandsMutex.Unlock()
 				break
 
 			case msg := <-r.m2bChan:
-				dlog.Printf("Received 2b for balnum %d @ replica %d\n", msg.Balnum, r.Id)
+				log.Printf("Received 2b for balnum %d @ replica %d\n", msg.Balnum, r.Id)
 				r.commandsMutex.Lock()
 				r.handle2b(msg)
 				r.commandsMutex.Unlock()
@@ -360,7 +359,7 @@ func (r *Replica) run() {
 
 				case propose := <-r.ProposeChan:
 					// got a Propose from a client
-					dlog.Printf("Proposal with id %d @ replica %d\n", propose.CommandId, r.Id)
+					log.Printf("Proposal with id %d @ replica %d\n", propose.CommandId, r.Id)
 					r.commandsMutex.Lock()
 					r.handlePropose(propose)
 					r.commandsMutex.Unlock()
@@ -375,35 +374,35 @@ func (r *Replica) run() {
 
 			case prepare := <-r.prepareChan:
 				// got a Prepare message
-				dlog.Printf("Received Prepare for balnum %d\n", prepare.Balnum)
+				log.Printf("Received Prepare for balnum %d\n", prepare.Balnum)
 				r.commandsMutex.Lock()
 				r.handlePrepare(prepare)
 				r.commandsMutex.Unlock()
 				break
 
 			case msg := <-r.m1aChan:
-				dlog.Printf("Received 1a for balnum %d @ replica %d\n", msg.Balnum, r.Id)
+				log.Printf("Received 1a for balnum %d @ replica %d\n", msg.Balnum, r.Id)
 				r.commandsMutex.Lock()
 				r.handle1a(msg)
 				r.commandsMutex.Unlock()
 				break
 
 			case msg := <-r.m1bChan:
-				dlog.Printf("Received 1b for balnum %d @ replica %d\n", msg.Balnum, r.Id)
+				log.Printf("Received 1b for balnum %d @ replica %d\n", msg.Balnum, r.Id)
 				r.commandsMutex.Lock()
 				r.handle1b(msg)
 				r.commandsMutex.Unlock()
 				break
 
 			case msg := <-r.m2aChan:
-				dlog.Printf("Received 2a for balnum %d @ replica %d\n", msg.Balnum, r.Id)
+				log.Printf("Received 2a for balnum %d @ replica %d\n", msg.Balnum, r.Id)
 				r.commandsMutex.Lock()
 				r.handle2a(msg)
 				r.commandsMutex.Unlock()
 				break
 
 			case msg := <-r.m2bChan:
-				dlog.Printf("Received 2b for balnum %d @ replica %d\n", msg.Balnum, r.Id)
+				log.Printf("Received 2b for balnum %d @ replica %d\n", msg.Balnum, r.Id)
 				r.commandsMutex.Lock()
 				r.handle2b(msg)
 				r.commandsMutex.Unlock()
@@ -411,7 +410,7 @@ func (r *Replica) run() {
 
 			case propose := <-r.ProposeChan:
 				// got a Propose from a client
-				dlog.Printf("Proposal with id %d @ replica %d\n", propose.CommandId, r.Id)
+				log.Printf("Proposal with id %d @ replica %d\n", propose.CommandId, r.Id)
 				r.commandsMutex.Lock()
 				r.handlePropose(propose)
 				r.commandsMutex.Unlock()
@@ -432,7 +431,7 @@ func (r *Replica) makeBallotLargerThan(ballot int32) int32 {
 func (r *Replica) bcastPrepare(replica int32, instance int32, ballot int32) {
 	defer func() {
 		if err := recover(); err != nil {
-			dlog.Println("Prepare bcast failed:", err)
+			log.Println("Prepare bcast failed:", err)
 		}
 	}()
 	args := &gpaxosproto.Prepare{r.Id, instance, ballot}
@@ -447,7 +446,7 @@ func (r *Replica) bcastPrepare(replica int32, instance int32, ballot int32) {
 	for sent := 0; sent < n; {
 		q = (q + 1) % int32(r.N)
 		if q == r.Id {
-			dlog.Println("Not enough replicas alive!")
+			log.Println("Not enough replicas alive!")
 			break
 		}
 		if !r.Alive[q] {
@@ -464,7 +463,7 @@ func (r *Replica) bcastPrepare(replica int32, instance int32, ballot int32) {
 func (r *Replica) bcast1a(balnum int32, fast bool) {
 	defer func() {
 		if err := recover(); err != nil {
-			dlog.Println("1a bcast failed:", err)
+			log.Println("1a bcast failed:", err)
 		}
 	}()
 	args := &gpaxosproto.M_1a{r.Id, balnum, TRUE}
@@ -501,7 +500,7 @@ func (r *Replica) bcast1a(balnum int32, fast bool) {
 func (r *Replica) bcast2a(balnum int32, cstruct []int32, fast bool) {
 	defer func() {
 		if err := recover(); err != nil {
-			dlog.Println("1a bcast failed:", err)
+			log.Println("1a bcast failed:", err)
 		}
 	}()
 	args := &gpaxosproto.M_2a{r.Id, balnum, cstruct}
@@ -535,7 +534,7 @@ func (r *Replica) bcast2a(balnum int32, cstruct []int32, fast bool) {
 func (r *Replica) bcastCommit(cstruct []int32) {
 	defer func() {
 		if err := recover(); err != nil {
-			dlog.Println("Commit bcast failed:", err)
+			log.Println("Commit bcast failed:", err)
 		}
 	}()
 	args := &gpaxosproto.Commit{cstruct}
@@ -661,7 +660,7 @@ func (r *Replica) handle1b(msg *gpaxosproto.M_1b) {
 		return
 	}
 
-	dlog.Println("msg.Cstruct: ", msg.Cstruct)
+	log.Println("msg.Cstruct: ", msg.Cstruct)
 	crtbal.lb.cstructs = append(crtbal.lb.cstructs, msg.Cstruct)
 	count := len(crtbal.lb.cstructs)
 
@@ -669,7 +668,7 @@ func (r *Replica) handle1b(msg *gpaxosproto.M_1b) {
 	if (r.fastRound && count == r.fastQSize) ||
 		(!r.fastRound && count == r.N/2+1) {
 		_, _, crtbal.cstruct = r.learn(true)
-		dlog.Println("LUB:", crtbal.cstruct)
+		log.Println("LUB:", crtbal.cstruct)
 		r.bcast2a(r.crtBalnum, crtbal.cstruct, r.fastRound)
 		crtbal.lb.cstructs = make([][]int32, r.N)
 		crtbal.status = PHASE2
@@ -699,7 +698,7 @@ func (r *Replica) handle2a(msg *gpaxosproto.M_2a) {
 	crtbal.received2a = true
 	crtbal.status = PHASE2
 
-	dlog.Println("old cstruct", crtbal.cstruct)
+	log.Println("old cstruct", crtbal.cstruct)
 
 	cids := make([]int32, 0)
 
@@ -732,7 +731,7 @@ func (r *Replica) handle2a(msg *gpaxosproto.M_2a) {
 
 func (r *Replica) handle2b(msg *gpaxosproto.M_2b) {
 	if msg.Balnum != r.crtBalnum {
-		dlog.Println("2b from a different ballot")
+		log.Println("2b from a different ballot")
 		return
 	}
 
@@ -744,9 +743,9 @@ func (r *Replica) handle2b(msg *gpaxosproto.M_2b) {
 	}
 
 	crtbal.lb.cstructs[msg.ReplicaId] = msg.Cstruct
-	dlog.Printf("Replica %d 2b msg.Cstruct: ", msg.ReplicaId)
-	dlog.Println(msg.Cstruct)
-	dlog.Println("my cstruct:", crtbal.cstruct)
+	log.Printf("Replica %d 2b msg.Cstruct: ", msg.ReplicaId)
+	log.Println(msg.Cstruct)
+	log.Println("my cstruct:", crtbal.cstruct)
 
 	crtbal.lb.cstructs[r.Id] = crtbal.cstruct
 
@@ -764,9 +763,9 @@ func (r *Replica) tryToLearn() {
 			r.startHigherBallot()
 		}
 	} else if glb != nil {
-		dlog.Println("Got GLB:", glb)
+		log.Println("Got GLB:", glb)
 		for _, cid := range glb {
-			dlog.Println("Committing command ", cid)
+			log.Println("Committing command ", cid)
 			r.committed[cid] = true
 			crtbal.lb.committed++
 			if prop, present := r.commandReplies[cid]; present {
@@ -817,7 +816,7 @@ func (r *Replica) learn(getLub bool) (conflict bool, glb []int32, lub []int32) {
 
 	// build directed graph
 
-	dlog.Println(crtbal.lb.cstructs)
+	log.Println(crtbal.lb.cstructs)
 	for i := 0; i < len(crtbal.lb.cstructs); i++ {
 		cs := crtbal.lb.cstructs[i]
 		for idx, cid := range cs {

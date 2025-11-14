@@ -97,7 +97,7 @@ type TryPreAcceptReply struct {
 const (
 	NONE int8 = iota
 	PREACCEPTED
-	PREACCEPTED_EQ
+	PreacceptedEq
 	ACCEPTED
 	COMMITTED
 	EXECUTED

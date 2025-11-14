@@ -34,8 +34,6 @@ func main() {
 
 	runtime.GOMAXPROCS(*procs)
 
-	rand.Seed(time.Now().UnixNano())
-
 	if *conflicts > 100 {
 		log.Fatalf("Conflicts percentage must be between 0 and 100.\n")
 	}
@@ -76,7 +74,7 @@ func main() {
 		}
 	}
 
-	before_total := time.Now()
+	beforeTotal := time.Now()
 
 	for j := 0; j < *reqsNb; j++ {
 
@@ -86,8 +84,9 @@ func main() {
 
 		if put[j] {
 			value := make([]byte, *psize)
+			// todo figure out if it is safe to replace with non-deterministic method
 			rand.Read(value)
-			proxy.Write(key, state.Value(value))
+			proxy.Write(key, value)
 		} else {
 			if *scan {
 				proxy.Scan(key, int64(100))
@@ -99,19 +98,19 @@ func main() {
 		after := time.Now()
 
 		duration := after.Sub(before)
-		fmt.Printf("latency %d\n", to_ms(duration.Nanoseconds()))
-		fmt.Printf("chain %d-1\n", to_ms(after.UnixNano()))
+		fmt.Printf("latency %d\n", toMs(duration.Nanoseconds()))
+		fmt.Printf("chain %d-1\n", toMs(after.UnixNano()))
 	}
 
 	fmt.Printf(proxy.Stats() + "\n")
 
 	proxy.Disconnect()
 
-	after_total := time.Now()
-	fmt.Printf("Test took %v\n", after_total.Sub(before_total))
+	afterTotal := time.Now()
+	fmt.Printf("Test took %v\n", afterTotal.Sub(beforeTotal))
 }
 
 // convert nanosecond to millisecond
-func to_ms(nano int64) int64 {
+func toMs(nano int64) int64 {
 	return nano / int64(time.Millisecond)
 }

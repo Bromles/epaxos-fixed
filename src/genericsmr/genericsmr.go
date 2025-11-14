@@ -13,16 +13,14 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Bromles/epaxos-fixed/src/dlog"
 	"github.com/Bromles/epaxos-fixed/src/fastrpc"
 	"github.com/Bromles/epaxos-fixed/src/genericsmrproto"
 	"github.com/Bromles/epaxos-fixed/src/state"
 )
 
 const (
-	CHAN_BUFFER_SIZE = 200000
-	TRUE             = uint8(1)
-	FALSE            = uint8(0)
+	ChanBufferSize = 200000
+	TRUE           = uint8(1)
 )
 
 var storage string
@@ -86,33 +84,27 @@ type Replica struct {
 
 func NewReplica(id int, peerAddrList []string, thrifty bool, exec bool, lread bool, dreply bool, failures int) *Replica {
 	r := &Replica{
-		len(peerAddrList),
-		int32(id),
-		peerAddrList,
-		make([]net.Conn, len(peerAddrList)),
-		make([]*bufio.Reader, len(peerAddrList)),
-		make([]*bufio.Writer, len(peerAddrList)),
-		make([]bool, len(peerAddrList)),
-		nil,
-		state.InitState(),
-		make(chan *Propose, CHAN_BUFFER_SIZE),
-		make(chan *Beacon, CHAN_BUFFER_SIZE),
-		false,
-		thrifty,
-		exec,
-		lread,
-		dreply,
-		false,
-		failures,
-		false,
-		nil,
-		make([]int32, len(peerAddrList)),
-		make(map[uint8]*RPCPair),
-		genericsmrproto.GENERIC_SMR_BEACON_REPLY + 1,
-		make([]float64, len(peerAddrList)),
-		make([]int64, len(peerAddrList)),
-		sync.Mutex{},
-		&genericsmrproto.Stats{make(map[string]int)},
+		N:                  len(peerAddrList),
+		Id:                 int32(id),
+		PeerAddrList:       peerAddrList,
+		Peers:              make([]net.Conn, len(peerAddrList)),
+		PeerReaders:        make([]*bufio.Reader, len(peerAddrList)),
+		PeerWriters:        make([]*bufio.Writer, len(peerAddrList)),
+		Alive:              make([]bool, len(peerAddrList)),
+		State:              state.InitState(),
+		ProposeChan:        make(chan *Propose, ChanBufferSize),
+		BeaconChan:         make(chan *Beacon, ChanBufferSize),
+		Thrifty:            thrifty,
+		Exec:               exec,
+		LRead:              lread,
+		Dreply:             dreply,
+		F:                  failures,
+		PreferredPeerOrder: make([]int32, len(peerAddrList)),
+		rpcTable:           make(map[uint8]*RPCPair),
+		rpcCode:            genericsmrproto.GENERIC_SMR_BEACON_REPLY + 1,
+		Ewma:               make([]float64, len(peerAddrList)),
+		Latencies:          make([]int64, len(peerAddrList)),
+		Stats:              &genericsmrproto.Stats{M: make(map[string]int)},
 	}
 
 	var err error
@@ -132,11 +124,11 @@ func NewReplica(id int, peerAddrList []string, thrifty bool, exec bool, lread bo
 
 /* Client API */
 
-func (r *Replica) Ping(args *genericsmrproto.PingArgs, reply *genericsmrproto.PingReply) error {
+func (r *Replica) Ping(*genericsmrproto.PingArgs, *genericsmrproto.PingReply) error {
 	return nil
 }
 
-func (r *Replica) BeTheLeader(args *genericsmrproto.BeTheLeaderArgs, reply *genericsmrproto.BeTheLeaderReply) error {
+func (r *Replica) BeTheLeader(*genericsmrproto.BeTheLeaderArgs, *genericsmrproto.BeTheLeaderReply) error {
 	return nil
 }
 
@@ -150,7 +142,7 @@ func (r *Replica) SlowQuorumSize() int {
 	return (r.N + 1) / 2
 }
 
-// Flexible Paxos
+// WriteQuorumSize Flexible Paxos
 func (r *Replica) WriteQuorumSize() int {
 	return r.F + 1
 }
@@ -259,7 +251,7 @@ func (r *Replica) waitForPeerConnections(done chan bool) {
 	done <- true
 }
 
-/* Client connections dispatcher */
+// WaitForClientConnections Client connections dispatcher
 func (r *Replica) WaitForClientConnections() {
 	log.Println("Waiting for client connections")
 
@@ -286,7 +278,7 @@ func (r *Replica) replicaListener(rid int, reader *bufio.Reader) {
 			break
 		}
 
-		switch uint8(msgType) {
+		switch msgType {
 
 		case genericsmrproto.GENERIC_SMR_BEACON:
 			if err = gbeacon.Unmarshal(reader); err != nil {
@@ -300,7 +292,7 @@ func (r *Replica) replicaListener(rid int, reader *bufio.Reader) {
 			if err = gbeaconReply.Unmarshal(reader); err != nil {
 				break
 			}
-			dlog.Println("receive beacon ", gbeaconReply.Timestamp, " reply from ", rid)
+			log.Println("receive beacon ", gbeaconReply.Timestamp, " reply from ", rid)
 			// TODO: UPDATE STUFF
 			r.Mutex.Lock()
 			r.Latencies[rid] += time.Now().UnixNano() - gbeaconReply.Timestamp
@@ -344,7 +336,7 @@ func (r *Replica) clientListener(conn net.Conn) {
 			break
 		}
 
-		switch uint8(msgType) {
+		switch msgType {
 
 		case genericsmrproto.PROPOSE:
 			propose := new(genericsmrproto.Propose)
@@ -354,10 +346,10 @@ func (r *Replica) clientListener(conn net.Conn) {
 			if r.LRead && (propose.Command.Op == state.GET || propose.Command.Op == state.SCAN) {
 				val := propose.Command.Execute(r.State)
 				propreply := &genericsmrproto.ProposeReplyTS{
-					TRUE,
-					propose.CommandId,
-					val,
-					propose.Timestamp,
+					OK:        TRUE,
+					CommandId: propose.CommandId,
+					Value:     val,
+					Timestamp: propose.Timestamp,
 				}
 				r.ReplyProposeTS(propreply, writer, mutex)
 			} else {
@@ -399,7 +391,7 @@ func (r *Replica) RegisterRPC(msgObj fastrpc.Serializable, notify chan fastrpc.S
 	code := r.rpcCode
 	r.rpcCode++
 	r.rpcTable[code] = &RPCPair{msgObj, notify}
-	dlog.Println("registering RPC ", r.rpcCode)
+	log.Println("registering RPC ", r.rpcCode)
 	return code
 }
 
@@ -427,7 +419,7 @@ func (r *Replica) SendMsgNoFlush(peerId int32, code uint8, msg fastrpc.Serializa
 	msg.Marshal(w)
 }
 
-func (r *Replica) ReplyProposeTS(reply *genericsmrproto.ProposeReplyTS, w *bufio.Writer, lock *sync.Mutex) {
+func (r *Replica) ReplyProposeTS(reply *genericsmrproto.ProposeReplyTS, w *bufio.Writer, _ *sync.Mutex) {
 	r.Mutex.Lock()
 	defer r.Mutex.Unlock()
 	reply.Marshal(w)
@@ -446,11 +438,11 @@ func (r *Replica) SendBeacon(peerId int32) {
 	beacon := &genericsmrproto.Beacon{Timestamp: time.Now().UnixNano()}
 	beacon.Marshal(w)
 	w.Flush()
-	dlog.Println("send beacon ", beacon.Timestamp, " to ", peerId)
+	log.Println("send beacon ", beacon.Timestamp, " to ", peerId)
 }
 
 func (r *Replica) ReplyBeacon(beacon *Beacon) {
-	dlog.Println("replying beacon to ", beacon.Rid)
+	log.Println("replying beacon to ", beacon.Rid)
 	r.Mutex.Lock()
 	defer r.Mutex.Unlock()
 	w := r.PeerWriters[beacon.Rid]
@@ -459,12 +451,12 @@ func (r *Replica) ReplyBeacon(beacon *Beacon) {
 		return
 	}
 	w.WriteByte(genericsmrproto.GENERIC_SMR_BEACON_REPLY)
-	rb := &genericsmrproto.BeaconReply{beacon.Timestamp}
+	rb := &genericsmrproto.BeaconReply{Timestamp: beacon.Timestamp}
 	rb.Marshal(w)
 	w.Flush()
 }
 
-// updates the preferred order in which to communicate with peers according to a preferred quorum
+// UpdatePreferredPeerOrder updates the preferred order in which to communicate with peers according to a preferred quorum
 func (r *Replica) UpdatePreferredPeerOrder(quorum []int32) {
 	aux := make([]int32, r.N)
 	i := 0
@@ -525,7 +517,7 @@ func (r *Replica) ComputeClosestPeers() {
 				pos++
 			}
 		}
-		quorum[pos] = int32(i)
+		quorum[pos] = i
 	}
 	r.Mutex.Unlock()
 

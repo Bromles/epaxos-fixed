@@ -28,12 +28,6 @@ type PrepareReplyCache struct {
 	cache []*PrepareReply
 }
 
-func NewPrepareReplyCache() *PrepareReplyCache {
-	c := &PrepareReplyCache{}
-	c.cache = make([]*PrepareReply, 0)
-	return c
-}
-
 func (p *PrepareReplyCache) Get() *PrepareReply {
 	var t *PrepareReply
 	p.mu.Lock()
@@ -168,12 +162,6 @@ type PreAcceptCache struct {
 	cache []*PreAccept
 }
 
-func NewPreAcceptCache() *PreAcceptCache {
-	c := &PreAcceptCache{}
-	c.cache = make([]*PreAccept, 0)
-	return c
-}
-
 func (p *PreAcceptCache) Get() *PreAccept {
 	var t *PreAccept
 	p.mu.Lock()
@@ -306,12 +294,6 @@ type AcceptCache struct {
 	cache []*Accept
 }
 
-func NewAcceptCache() *AcceptCache {
-	c := &AcceptCache{}
-	c.cache = make([]*Accept, 0)
-	return c
-}
-
 func (p *AcceptCache) Get() *Accept {
 	var t *Accept
 	p.mu.Lock()
@@ -423,12 +405,6 @@ type AcceptReplyCache struct {
 	cache []*AcceptReply
 }
 
-func NewAcceptReplyCache() *AcceptReplyCache {
-	c := &AcceptReplyCache{}
-	c.cache = make([]*AcceptReply, 0)
-	return c
-}
-
 func (p *AcceptReplyCache) Get() *AcceptReply {
 	var t *AcceptReply
 	p.mu.Lock()
@@ -495,12 +471,6 @@ func (t *TryPreAccept) BinarySize() (nbytes int, sizeKnown bool) {
 type TryPreAcceptCache struct {
 	mu    sync.Mutex
 	cache []*TryPreAccept
-}
-
-func NewTryPreAcceptCache() *TryPreAcceptCache {
-	c := &TryPreAcceptCache{}
-	c.cache = make([]*TryPreAccept, 0)
-	return c
 }
 
 func (p *TryPreAcceptCache) Get() *TryPreAccept {
@@ -635,12 +605,6 @@ type PrepareCache struct {
 	cache []*Prepare
 }
 
-func NewPrepareCache() *PrepareCache {
-	c := &PrepareCache{}
-	c.cache = make([]*Prepare, 0)
-	return c
-}
-
 func (p *PrepareCache) Get() *Prepare {
 	var t *Prepare
 	p.mu.Lock()
@@ -713,12 +677,6 @@ func (t *PreAcceptReply) BinarySize() (nbytes int, sizeKnown bool) {
 type PreAcceptReplyCache struct {
 	mu    sync.Mutex
 	cache []*PreAcceptReply
-}
-
-func NewPreAcceptReplyCache() *PreAcceptReplyCache {
-	c := &PreAcceptReplyCache{}
-	c.cache = make([]*PreAcceptReply, 0)
-	return c
 }
 
 func (p *PreAcceptReplyCache) Get() *PreAcceptReply {
@@ -859,12 +817,6 @@ type PreAcceptOKCache struct {
 	cache []*PreAcceptOK
 }
 
-func NewPreAcceptOKCache() *PreAcceptOKCache {
-	c := &PreAcceptOKCache{}
-	c.cache = make([]*PreAcceptOK, 0)
-	return c
-}
-
 func (p *PreAcceptOKCache) Get() *PreAcceptOK {
 	var t *PreAcceptOK
 	p.mu.Lock()
@@ -919,12 +871,6 @@ func (t *Commit) BinarySize() (nbytes int, sizeKnown bool) {
 type CommitCache struct {
 	mu    sync.Mutex
 	cache []*Commit
-}
-
-func NewCommitCache() *CommitCache {
-	c := &CommitCache{}
-	c.cache = make([]*Commit, 0)
-	return c
 }
 
 func (p *CommitCache) Get() *Commit {
@@ -1057,12 +1003,6 @@ func (t *TryPreAcceptReply) BinarySize() (nbytes int, sizeKnown bool) {
 type TryPreAcceptReplyCache struct {
 	mu    sync.Mutex
 	cache []*TryPreAcceptReply
-}
-
-func NewTryPreAcceptReplyCache() *TryPreAcceptReplyCache {
-	c := &TryPreAcceptReplyCache{}
-	c.cache = make([]*TryPreAcceptReply, 0)
-	return c
 }
 
 func (p *TryPreAcceptReplyCache) Get() *TryPreAcceptReply {

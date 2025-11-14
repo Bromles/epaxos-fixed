@@ -10,19 +10,6 @@ const (
 	k2 = 0x9ae16a3b2f90404f
 )
 
-func hash64(s uint64) uint64 {
-	var mul uint64 = k2 + 8
-	u := 4 + (s << 3)
-
-	// Murmur-inspired hashing.
-	a := (u ^ s) * mul
-	a ^= a >> 47
-	b := (s ^ a) * mul
-	b ^= b >> 47
-	b *= mul
-	return b
-}
-
 func CityHash64(s uint64) uint64 {
 	var mul uint64 = k2 + 16
 	a := s + k2

@@ -16,7 +16,6 @@ import (
 	"github.com/Bromles/epaxos-fixed/src/epaxos"
 	"github.com/Bromles/epaxos-fixed/src/gpaxos"
 	"github.com/Bromles/epaxos-fixed/src/masterproto"
-	"github.com/Bromles/epaxos-fixed/src/mencius"
 	"github.com/Bromles/epaxos-fixed/src/paxos"
 )
 
@@ -75,10 +74,6 @@ func main() {
 	if *doEpaxos {
 		log.Println("Starting Egalitarian Paxos replica...")
 		rep := epaxos.NewReplica(replicaId, nodeList, *thrifty, *exec, *lread, *dreply, *beacon, *durable, *batchWait, *transitiveConflicts, *maxfailures)
-		rpc.Register(rep)
-	} else if *doMencius {
-		log.Println("Starting Mencius replica...")
-		rep := mencius.NewReplica(replicaId, nodeList, *thrifty, *exec, *lread, *dreply, *durable, *maxfailures)
 		rpc.Register(rep)
 	} else if *doGpaxos {
 		log.Println("Starting Generalized Paxos replica...")

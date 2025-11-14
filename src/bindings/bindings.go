@@ -23,9 +23,9 @@ import (
 )
 
 const (
-	TRUE         = uint8(1)
-	TIMEOUT      = 3 * time.Second
-	MAX_ATTEMPTS = 3
+	TRUE        = uint8(1)
+	TIMEOUT     = 3 * time.Second
+	MaxAttempts = 3
 )
 
 type Parameters struct {
@@ -83,10 +83,14 @@ func (b *Parameters) Connect() error {
 		err = Call(master, "Master.GetReplicaList", new(masterproto.GetReplicaListArgs), replyRL)
 		if err == nil && replyRL.Ready {
 			done = true
-		} else if i == MAX_ATTEMPTS {
+		} else if i == MaxAttempts {
 			// if too many attempts, connect again
-			master.Close()
-			return errors.New("Too many call attempts!")
+			err = master.Close()
+			if err != nil {
+				log.Printf("Failed to close master. Error: %v\n", err)
+				return err
+			}
+			return errors.New("too many call attempts")
 		}
 	}
 
@@ -116,10 +120,14 @@ func (b *Parameters) Connect() error {
 			err = Call(master, "Master.GetLeader", new(masterproto.GetLeaderArgs), replyL)
 			if err == nil {
 				done = true
-			} else if i == MAX_ATTEMPTS {
+			} else if i == MaxAttempts {
 				// if too many attempts, connect again
-				master.Close()
-				return errors.New("Too many call attempts!")
+				err = master.Close()
+				if err != nil {
+					log.Printf("Failed to close master. Error: %v\n", err)
+					return err
+				}
+				return errors.New("oo many call attempts")
 			}
 		}
 
@@ -154,7 +162,11 @@ func Dial(addr string, connect bool) net.Conn {
 		if err == nil {
 			if connect {
 				// connect if no error
-				io.WriteString(conn, "CONNECT "+rpc.DefaultRPCPath+" HTTP/1.0\n\n")
+				_, err = io.WriteString(conn, "CONNECT "+rpc.DefaultRPCPath+" HTTP/1.0\n\n")
+				if err != nil {
+					log.Printf("Failed to connect to master. Error: %v\n", err)
+					return nil
+				}
 				resp, err = http.ReadResponse(bufio.NewReader(conn), &http.Request{Method: "CONNECT"})
 				if err == nil && resp != nil && resp.Status == "200 Connected to Go RPC" {
 					done = true
@@ -168,7 +180,10 @@ func Dial(addr string, connect bool) net.Conn {
 			// if not done yet, try again
 			log.Println("Connection error with ", addr, ": ", err)
 			if conn != nil {
-				conn.Close()
+				err = conn.Close()
+				if err != nil {
+					log.Printf("Failed to close master. Error: %v\n", err)
+				}
 			}
 		}
 	}
@@ -215,7 +230,7 @@ func (b *Parameters) FindClosestReplica(replyRL *masterproto.GetReplicaListReply
 		if !replyRL.AliveList[i] {
 			continue
 		}
-		addr := strings.Split(string(b.replicaLists[i]), ":")[0]
+		addr := strings.Split(b.replicaLists[i], ":")[0]
 		if addr == "" {
 			addr = "127.0.0.1"
 		}
@@ -242,7 +257,11 @@ func (b *Parameters) FindClosestReplica(replyRL *masterproto.GetReplicaListReply
 func (b *Parameters) Disconnect() {
 	for _, server := range b.servers {
 		if server != nil {
-			server.Close()
+			err := server.Close()
+			if err != nil {
+				log.Printf("Failed to close master. Error: %v\n", err)
+				return
+			}
 		}
 	}
 	log.Printf("Disconnected")
@@ -251,7 +270,13 @@ func (b *Parameters) Disconnect() {
 // not idempotent in case of a failure
 func (b *Parameters) Write(key int64, value []byte) {
 	b.id++
-	args := genericsmrproto.Propose{b.id, state.Command{state.PUT, 0, state.NIL()}, 0}
+	args := genericsmrproto.Propose{
+		CommandId: b.id,
+		Command: state.Command{
+			Op: state.PUT,
+			V:  state.NIL(),
+		},
+	}
 	args.CommandId = b.id
 	args.Command.K = state.Key(key)
 	args.Command.V = value
@@ -266,7 +291,7 @@ func (b *Parameters) Write(key int64, value []byte) {
 
 func (b *Parameters) Read(key int64) []byte {
 	b.id++
-	args := genericsmrproto.Propose{b.id, state.Command{state.PUT, 0, state.NIL()}, 0}
+	args := genericsmrproto.Propose{CommandId: b.id, Command: state.Command{Op: state.PUT, V: state.NIL()}}
 	args.CommandId = b.id
 	args.Command.K = state.Key(key)
 	args.Command.Op = state.GET
@@ -280,7 +305,7 @@ func (b *Parameters) Read(key int64) []byte {
 
 func (b *Parameters) Scan(key int64, count int64) []byte {
 	b.id++
-	args := genericsmrproto.Propose{b.id, state.Command{state.PUT, 0, state.NIL()}, 0}
+	args := genericsmrproto.Propose{CommandId: b.id, Command: state.Command{Op: state.PUT, V: state.NIL()}}
 	args.CommandId = b.id
 	args.Command.K = state.Key(key)
 	args.Command.V = make([]byte, 8)
@@ -295,10 +320,22 @@ func (b *Parameters) Scan(key int64, count int64) []byte {
 }
 
 func (b *Parameters) Stats() string {
-	b.writers[b.closestReplica].WriteByte(genericsmrproto.STATS)
-	b.writers[b.closestReplica].Flush()
+	err := b.writers[b.closestReplica].WriteByte(genericsmrproto.STATS)
+	if err != nil {
+		log.Printf("Failed to write stats: %v\n", err)
+		return ""
+	}
+	err = b.writers[b.closestReplica].Flush()
+	if err != nil {
+		log.Printf("Failed to flush stats: %v\n", err)
+		return ""
+	}
 	arr := make([]byte, 1000)
-	b.readers[b.closestReplica].Read(arr)
+	_, err = b.readers[b.closestReplica].Read(arr)
+	if err != nil {
+		log.Printf("Failed to read stats: %v\n", err)
+		return ""
+	}
 	return string(bytes.Trim(arr, "\x00"))
 }
 
@@ -320,15 +357,31 @@ func (b *Parameters) execute(args genericsmrproto.Propose) []byte {
 		}
 
 		if !b.isFast {
-			b.writers[submitter].WriteByte(genericsmrproto.PROPOSE)
+			err = b.writers[submitter].WriteByte(genericsmrproto.PROPOSE)
+			if err != nil {
+				log.Printf("Failed to write stats: %v\n", err)
+				return nil
+			}
 			args.Marshal(b.writers[submitter])
-			b.writers[submitter].Flush()
+			err = b.writers[submitter].Flush()
+			if err != nil {
+				log.Printf("Failed to flush stats: %v\n", err)
+				return nil
+			}
 		} else {
 			// send to everyone
 			for rep := 0; rep < b.n; rep++ {
-				b.writers[rep].WriteByte(genericsmrproto.PROPOSE)
+				err = b.writers[rep].WriteByte(genericsmrproto.PROPOSE)
+				if err != nil {
+					log.Printf("Failed to write stats: %v\n", err)
+					return nil
+				}
 				args.Marshal(b.writers[rep])
-				b.writers[rep].Flush()
+				err = b.writers[rep].Flush()
+				if err != nil {
+					log.Printf("Failed to flush stats: %v\n", err)
+					return nil
+				}
 			}
 		}
 
@@ -373,7 +426,7 @@ func (b *Parameters) waitReplies(submitter int) (state.Value, error) {
 		if rep.OK == TRUE {
 			ret = rep.Value
 		} else {
-			err = errors.New("Failed to receive a response.")
+			err = errors.New("failed to receive a response")
 		}
 	}
 
