@@ -34,8 +34,6 @@ type Parameters struct {
 	verbose        bool
 	localReads     bool
 	closestReplica int
-	Leader         int
-	leaderless     bool
 	isFast         bool
 	n              int
 	replicaLists   []string
@@ -46,15 +44,13 @@ type Parameters struct {
 	retries        int32
 }
 
-func NewParameters(masterAddr string, masterPort int, verbose bool, leaderless bool, fast bool, localReads bool) *Parameters {
+func NewParameters(masterAddr string, masterPort int, verbose bool, fast bool, localReads bool) *Parameters {
 	return &Parameters{
 		masterAddr,
 		masterPort,
 		verbose,
 		localReads,
 		0,
-		0,
-		leaderless,
 		fast,
 		0,
 		nil,
@@ -110,33 +106,6 @@ func (b *Parameters) Connect() error {
 	// get list of nodes to connect to
 	var toConnect []int
 	toConnect = append(toConnect, b.closestReplica)
-
-	if !b.leaderless {
-		log.Printf("Getting leader from master...\n")
-		var replyL *masterproto.GetLeaderReply
-
-		for i, done := 0, false; !done; i++ {
-			replyL = new(masterproto.GetLeaderReply)
-			err = Call(master, "Master.GetLeader", new(masterproto.GetLeaderArgs), replyL)
-			if err == nil {
-				done = true
-			} else if i == MaxAttempts {
-				// if too many attempts, connect again
-				err = master.Close()
-				if err != nil {
-					log.Printf("Failed to close master. Error: %v\n", err)
-					return err
-				}
-				return errors.New("oo many call attempts")
-			}
-		}
-
-		b.Leader = replyL.LeaderId
-		if b.closestReplica != b.Leader {
-			toConnect = append(toConnect, b.Leader)
-		}
-		log.Printf("The Leader is replica %d\n", b.Leader)
-	}
 
 	for _, i := range toConnect {
 		log.Println("Connection to ", i, " -> ", b.replicaLists[i])
@@ -209,7 +178,7 @@ func Call(cli *rpc.Client, method string, args interface{}, reply interface{}) e
 	select {
 	case err := <-c:
 		if err != nil {
-			log.Printf("Error in RPC: " + method)
+			log.Printf("Error in RPC: %s: %s", method, err.Error())
 		}
 		return err
 
@@ -350,11 +319,7 @@ func (b *Parameters) execute(args genericsmrproto.Propose) []byte {
 	value := state.NIL()
 
 	for err != nil {
-
-		submitter := b.Leader
-		if b.leaderless {
-			submitter = b.closestReplica
-		}
+		submitter := b.closestReplica
 
 		if !b.isFast {
 			err = b.writers[submitter].WriteByte(genericsmrproto.PROPOSE)

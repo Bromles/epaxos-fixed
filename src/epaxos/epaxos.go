@@ -119,9 +119,9 @@ type LeaderBookkeeping struct {
 	leaderResponded   bool
 }
 
-func NewReplica(id int, peerAddrList []string, thrifty bool, exec bool, lread bool, dreply bool, beacon bool, durable bool, batchWait int, transconf bool, failures int) *Replica {
+func NewReplica(id int, peerAddrList []string, exec bool, lread bool, dreply bool, beacon bool, durable bool, batchWait int, transconf bool, failures int) *Replica {
 	r := &Replica{
-		genericsmr.NewReplica(id, peerAddrList, thrifty, exec, lread, dreply, failures),
+		genericsmr.NewReplica(id, peerAddrList, exec, lread, dreply, failures),
 		make(chan fastrpc.Serializable, genericsmr.ChanBufferSize),
 		make(chan fastrpc.Serializable, genericsmr.ChanBufferSize),
 		make(chan fastrpc.Serializable, genericsmr.ChanBufferSize),
@@ -153,10 +153,6 @@ func NewReplica(id int, peerAddrList []string, thrifty bool, exec bool, lread bo
 
 	r.Beacon = beacon
 	r.Durable = durable
-
-	if !thrifty {
-		panic("must run with thriftiness on")
-	}
 
 	for i := 0; i < r.N; i++ {
 		r.InstanceSpace[i] = make([]*Instance, MaxInstance) // FIXME
@@ -558,9 +554,7 @@ func (r *Replica) bcastPreAccept(replica int32, instance int32) {
 	pa.Deps = lb.deps
 
 	n := r.N - 1
-	if r.Thrifty {
-		n = r.Replica.FastQuorumSize() - 1
-	}
+	n = r.Replica.FastQuorumSize() - 1
 
 	sent := 0
 	for q := 0; q < r.N-1; q++ {
@@ -621,9 +615,7 @@ func (r *Replica) bcastAccept(replica int32, instance int32) {
 	ea.Deps = lb.deps
 
 	n := r.N - 1
-	if r.Thrifty {
-		n = r.N / 2
-	}
+	n = r.N / 2
 
 	sent := 0
 	for q := 0; q < r.N-1; q++ {
@@ -952,7 +944,7 @@ func (r *Replica) handlePreAcceptReply(pareply *epaxosproto.PreAcceptReply) {
 
 	// differ from original code: (r.N <= 3 && !r.Thrifty) not inline with SOSP Section 4.4
 	seq, deps, allEqual := r.mergeAttributes(lb.seq, lb.deps, pareply.Seq, pareply.Deps)
-	if r.N <= 3 && r.Thrifty {
+	if r.N <= 3 {
 		// no need to check for equality
 	} else {
 		inst.lb.allEqual = inst.lb.allEqual && allEqual

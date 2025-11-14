@@ -201,7 +201,7 @@ func (master *Master) Register(args *masterproto.RegisterArgs, reply *masterprot
 	return nil
 }
 
-func (master *Master) GetLeader(reply *masterproto.GetLeaderReply) error {
+func (master *Master) GetLeader(_ *masterproto.GetLeaderArgs, reply *masterproto.GetLeaderReply) error {
 	master.lock.Lock()
 	defer master.lock.Unlock()
 
@@ -214,7 +214,7 @@ func (master *Master) GetLeader(reply *masterproto.GetLeaderReply) error {
 	return nil
 }
 
-func (master *Master) GetReplicaList(reply *masterproto.GetReplicaListReply) error {
+func (master *Master) GetReplicaList(_ *masterproto.GetReplicaListArgs, reply *masterproto.GetReplicaListReply) error {
 	master.lock.Lock()
 	defer master.lock.Unlock()
 

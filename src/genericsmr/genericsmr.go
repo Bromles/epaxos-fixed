@@ -23,7 +23,7 @@ const (
 	TRUE           = uint8(1)
 )
 
-var storage string
+var storage = "."
 
 type RPCPair struct {
 	Obj  fastrpc.Serializable
@@ -58,11 +58,10 @@ type Replica struct {
 
 	Shutdown bool
 
-	Thrifty bool // send only as many messages as strictly required?
-	Exec    bool // execute commands?
-	LRead   bool // execute local reads?
-	Dreply  bool // reply to client after command has been executed?
-	Beacon  bool // send beacons to detect how fast are the other replicas?
+	Exec   bool // execute commands?
+	LRead  bool // execute local reads?
+	Dreply bool // reply to client after command has been executed?
+	Beacon bool // send beacons to detect how fast are the other replicas?
 
 	F int
 
@@ -82,7 +81,7 @@ type Replica struct {
 	Stats *genericsmrproto.Stats
 }
 
-func NewReplica(id int, peerAddrList []string, thrifty bool, exec bool, lread bool, dreply bool, failures int) *Replica {
+func NewReplica(id int, peerAddrList []string, exec bool, lread bool, dreply bool, failures int) *Replica {
 	r := &Replica{
 		N:                  len(peerAddrList),
 		Id:                 int32(id),
@@ -94,7 +93,6 @@ func NewReplica(id int, peerAddrList []string, thrifty bool, exec bool, lread bo
 		State:              state.InitState(),
 		ProposeChan:        make(chan *Propose, ChanBufferSize),
 		BeaconChan:         make(chan *Beacon, ChanBufferSize),
-		Thrifty:            thrifty,
 		Exec:               exec,
 		LRead:              lread,
 		Dreply:             dreply,

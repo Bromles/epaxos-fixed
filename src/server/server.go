@@ -24,7 +24,6 @@ var (
 	myAddr              = flag.String("addr", "", "Server address (this machine). Defaults to localhost.")
 	procs               = flag.Int("p", 2, "GOMAXPROCS. Defaults to 2")
 	cpuprofile          = flag.String("cpuprofile", "", "write cpu profile to file")
-	thrifty             = flag.Bool("thrifty", false, "Use only as many messages as strictly required for inter-replica communication.")
 	exec                = flag.Bool("exec", true, "Execute commands.")
 	lread               = flag.Bool("lread", false, "Execute locally read command.")
 	dreply              = flag.Bool("dreply", true, "Reply to client only after command has been executed.")
@@ -61,7 +60,7 @@ func main() {
 	log.Printf("Tolerating %d max. failures\n", *maxfailures)
 
 	log.Println("Starting Egalitarian Paxos replica...")
-	rep := epaxos.NewReplica(replicaId, nodeList, *thrifty, *exec, *lread, *dreply, *beacon, *durable, *batchWait, *transitiveConflicts, *maxfailures)
+	rep := epaxos.NewReplica(replicaId, nodeList, *exec, *lread, *dreply, *beacon, *durable, *batchWait, *transitiveConflicts, *maxfailures)
 	rpc.Register(rep)
 
 	rpc.HandleHTTP()

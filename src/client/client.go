@@ -20,7 +20,6 @@ var (
 	reqsNb     = flag.Int("q", 1000, "Total number of requests. ")
 	writes     = flag.Int("w", 100, "Percentage of updates (writes). ")
 	psize      = flag.Int("psize", 100, "Payload size for writes.")
-	noLeader   = flag.Bool("e", false, "Egalitarian (no leader). ")
 	fast       = flag.Bool("f", false, "Fast Paxos: send message directly to all replicas. ")
 	localReads = flag.Bool("l", false, "Execute reads at the closest (local) replica. ")
 	procs      = flag.Int("p", 2, "GOMAXPROCS. ")
@@ -40,7 +39,7 @@ func main() {
 
 	var proxy *bindings.Parameters
 	for {
-		proxy = bindings.NewParameters(*masterAddr, *masterPort, *verbose, *noLeader, *fast, *localReads)
+		proxy = bindings.NewParameters(*masterAddr, *masterPort, *verbose, *fast, *localReads)
 		err := proxy.Connect()
 		if err == nil {
 			break
