@@ -179,7 +179,6 @@ func (master *Master) Register(args *masterproto.RegisterArgs, reply *masterprot
 		reply.Ready = true
 		reply.ReplicaId = index
 		reply.NodeList = master.nodeList
-		reply.IsLeader = false
 
 		minLatency := math.MaxFloat64
 		leader := 0
@@ -193,7 +192,6 @@ func (master *Master) Register(args *masterproto.RegisterArgs, reply *masterprot
 		if leader == index {
 			log.Printf("Replica %d is the new leader.", index)
 			master.leader[index] = true
-			reply.IsLeader = true
 		}
 
 	} else {
